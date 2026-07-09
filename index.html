@@ -1,0 +1,963 @@
+<style>
+  :root{
+    --bg:#0f1720;
+    --panel:#16212c;
+    --panel2:#1c2a37;
+    --line:#2a3a48;
+    --text:#e7edf2;
+    --muted:#8ba0af;
+    --accent:#ffb648;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body,.wrap{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    margin:0;
+    padding:0;
+  }
+  .wrap{padding:18px 14px 40px;}
+  h1{
+    font-size:19px;
+    margin:0 0 2px;
+    letter-spacing:.2px;
+    font-weight:700;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:12.5px;
+    margin:0 0 16px;
+    line-height:1.5;
+  }
+  .break-seg{
+    position:absolute;
+    left:3px;right:3px;
+    border-radius:6px;
+    font-size:9.5px;
+    font-weight:700;
+    color:#c9d6e0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    pointer-events:none;
+    background-image:repeating-linear-gradient(
+      45deg,
+      #2a3a48 0px,
+      #2a3a48 6px,
+      #17232e 6px,
+      #17232e 12px
+    );
+  }
+  .lock-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+    font-size:12px;
+  }
+  .lock-status{
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .lock-dot{
+    width:7px;height:7px;
+    border-radius:50%;
+    background:#5fd97a;
+    flex:0 0 auto;
+  }
+  .lock-dot.off{background:var(--muted);}
+  .lock-pass{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12.5px;
+    padding:7px 10px;
+    border-radius:8px;
+    width:140px;
+  }
+  .lock-btn{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12.5px;
+    font-weight:600;
+    padding:7px 12px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .lock-btn:hover{border-color:var(--accent);}
+  .lock-btn.on{
+    background:var(--accent);
+    color:#0f1720;
+    border-color:var(--accent);
+  }
+  .lock-err{
+    color:#ff8f8f;
+    font-size:11.5px;
+  }
+  .version-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .version-select-wrap{
+    position:relative;
+    display:inline-block;
+  }
+  .version-select{
+    appearance:none;
+    -webkit-appearance:none;
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 30px 8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    min-width:140px;
+  }
+  .version-select-wrap::after{
+    content:'';
+    position:absolute;
+    right:11px;
+    top:50%;
+    width:7px;
+    height:7px;
+    border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted);
+    transform:translateY(-70%) rotate(45deg);
+    pointer-events:none;
+  }
+  .version-name-input{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 10px;
+    border-radius:8px;
+    min-width:120px;
+  }
+  .version-btn{
+    background:transparent;
+    border:1px dashed var(--line);
+    color:var(--muted);
+    font-size:12.5px;
+    font-weight:600;
+    padding:7px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .version-btn:hover{color:var(--text);border-color:var(--accent);}
+  .version-btn.danger:hover{color:#ff7a7a;border-color:#ff7a7a;}
+  .day{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    width:100%;
+  }
+  .day-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .day-head h2{
+    font-size:15px;
+    margin:0;
+    font-weight:700;
+  }
+  .day-head span{
+    font-size:11px;
+    color:var(--muted);
+  }
+  .grid-area{
+    display:flex;
+  }
+  .gutter{
+    width:52px;
+    flex:0 0 auto;
+    position:relative;
+  }
+  .gutter .lab{
+    position:absolute;
+    right:6px;
+    transform:translateY(-50%);
+    font-size:10px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .shift-cols{
+    display:flex;
+    gap:6px;
+    flex:1 1 auto;
+    overflow-x:auto;
+  }
+  .shift-col{
+    flex:1 1 0;
+    min-width:64px;
+    display:flex;
+    flex-direction:column;
+  }
+  .shift-head{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    margin-bottom:4px;
+    position:relative;
+  }
+  .shift-label{
+    font-size:12px;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:6px;
+    cursor:text;
+    color:#0f1720;
+  }
+  .shift-remove{
+    position:absolute;
+    right:-4px;
+    top:-6px;
+    width:15px;
+    height:15px;
+    border-radius:50%;
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:10px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .shift-remove:hover{color:#ff7a7a;border-color:#ff7a7a;}
+  .track{
+    position:relative;
+    background:repeating-linear-gradient(
+      to bottom,
+      var(--panel2) 0,
+      var(--panel2) 23px,
+      #17232e 23px,
+      #17232e 24px
+    );
+    border-radius:6px;
+    border:1px solid var(--line);
+    touch-action:none;
+    user-select:none;
+    cursor:crosshair;
+  }
+  .track.readonly{cursor:default;}
+  .hour-line{
+    position:absolute;
+    left:0;right:0;
+    border-top:1px solid #34495a;
+    pointer-events:none;
+  }
+  .block{
+    position:absolute;
+    left:3px;right:3px;
+    border-radius:6px;
+    font-size:10px;
+    font-weight:700;
+    color:#0f1720;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:2px;
+    cursor:grab;
+    box-shadow:0 1px 3px rgba(0,0,0,.35);
+    line-height:1.15;
+  }
+  .block.break{
+    color:#f2f2f2;
+    background-image:repeating-linear-gradient(
+      45deg,
+      var(--stripe-color) 0px,
+      var(--stripe-color) 6px,
+      #0f1720cc 6px,
+      #0f1720cc 12px
+    );
+  }
+  .handle{
+    position:absolute;
+    left:0;right:0;
+    height:7px;
+    cursor:ns-resize;
+  }
+  .handle.top{top:0;}
+  .handle.bottom{bottom:0;}
+  .del{
+    position:absolute;
+    top:-6px;
+    right:-6px;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:#16212c;
+    border:1px solid var(--line);
+    color:#ff8f8f;
+    font-size:9px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .add-shift{
+    flex:0 0 76px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding-top:22px;
+  }
+  .add-shift button{
+    background:var(--panel2);
+    border:1px dashed var(--line);
+    color:var(--muted);
+    border-radius:8px;
+    font-size:11px;
+    padding:6px 8px;
+    cursor:pointer;
+  }
+  .add-shift button:hover{color:var(--text);border-color:var(--accent);}
+  .legend{
+    display:flex;
+    gap:14px;
+    margin:14px 2px 0;
+    font-size:11px;
+    color:var(--muted);
+    flex-wrap:wrap;
+  }
+  .legend .sw{
+    display:inline-block;
+    width:10px;height:10px;
+    border-radius:3px;
+    margin-right:5px;
+    vertical-align:-1px;
+  }
+  .shift-stats{
+    margin-top:6px;
+    font-size:10.5px;
+    color:var(--muted);
+    text-align:center;
+    line-height:1.5;
+  }
+  .shift-stats b{color:var(--text);}
+  .shift-stats .lbl{color:var(--muted);}
+  .day-total{
+    margin-top:14px;
+    padding-top:10px;
+    border-top:1px solid var(--line);
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .day-total b{color:var(--accent);}
+  .summary{
+    margin-top:20px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 16px;
+    max-width:560px;
+  }
+  .summary h3{
+    margin:0 0 4px;
+    font-size:14px;
+  }
+  .summary p{
+    margin:0 0 10px;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.5px;
+  }
+  th,td{
+    text-align:left;
+    padding:6px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
+  tr.total td{font-weight:700;border-top:1px solid var(--line);border-bottom:none;color:var(--accent);}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;}
+</style>
+
+<div class="wrap">
+  <h1>Weekend Shift Template</h1>
+  <p class="sub">Anyone with this link can view the schedule and it stays in sync automatically. Only the passcode holder can drag, resize, or edit — everyone else sees a live, read-only view. Drag on a lane to create a shift block; drag the top/bottom edge to resize, drag the middle to move, use × to delete. A gap between two blocks in the same column is automatically counted as break time.</p>
+  <div id="lockBar" class="lock-bar"></div>
+  <div id="versionBar" class="version-bar"></div>
+  <div id="dayContainer"></div>
+</div>
+
+<script>
+(function(){
+  const START_MIN = 8*60;      // 8:00 AM
+  const END_MIN   = 24*60;     // 12:00 AM
+  const STEP      = 30;        // minutes per row
+  const ROWS      = (END_MIN-START_MIN)/STEP;
+  const ROW_H     = 24;        // px
+
+  const PALETTE = ['#2dd4bf','#e94f8a','#ff7a59','#5b9dff','#c084fc','#ffd166','#8ee08e'];
+
+  // Change this before sharing the link with anyone — whoever enters it
+  // correctly can edit the schedule. Everyone else only sees it (read-only).
+  const EDIT_PASSCODE = 'yaichi-shift';
+
+  let isEditor = false;
+  let syncStatus = 'loading'; // 'loading' | 'synced' | 'saving' | 'error'
+  let saveTimer = null;
+  let suppressSave = false;
+
+  let uid = 1;
+  const newId = () => 'id'+(uid++);
+
+  function nextLabel(shifts){
+    const used = new Set(shifts.map(s=>s.label));
+    for(let i=0;i<26;i++){
+      const L = String.fromCharCode(65+i);
+      if(!used.has(L)) return L;
+    }
+    return 'X'+shifts.length;
+  }
+
+  function defaultShifts(){
+    return [
+      { id:newId(), label:'A', color:PALETTE[0], blocks:[] },
+      { id:newId(), label:'B', color:PALETTE[1], blocks:[] },
+      { id:newId(), label:'C', color:PALETTE[2], blocks:[] },
+    ];
+  }
+
+  function cloneShifts(shifts){
+    return shifts.map(s => ({
+      id:newId(),
+      label:s.label,
+      color:s.color,
+      blocks: s.blocks.map(b => ({ id:newId(), start:b.start, end:b.end }))
+    }));
+  }
+
+  const state = {
+    versions: [
+      { id:newId(), name:'Idea 1', shifts: defaultShifts() }
+    ],
+    activeVersion: 0
+  };
+
+  function currentShifts(){
+    return state.versions[state.activeVersion].shifts;
+  }
+
+  function minutesLabel(totalMin){
+    let h = Math.floor(totalMin/60), m = totalMin%60;
+    let ampm = 'AM';
+    if(h===24){ h=12; ampm='AM'; }
+    else if(h===12){ ampm='PM'; }
+    else if(h>12){ h=h-12; ampm='PM'; }
+    else if(h===0){ h=12; ampm='AM'; }
+    return h + (m? (':'+String(m).padStart(2,'0')) : '') + ' ' + ampm;
+  }
+
+  function fmtHours(rows){
+    const hrs = rows*STEP/60;
+    return (Math.round(hrs*100)/100).toString().replace(/\.0$/,'') + 'h';
+  }
+
+  const STORE_KEY = 'shift-schedule-state';
+
+  function scheduleSave(){
+    if(suppressSave) return;
+    clearTimeout(saveTimer);
+    syncStatus = 'saving';
+    renderLockBar();
+    saveTimer = setTimeout(saveState, 500);
+  }
+
+  async function saveState(){
+    try{
+      await window.storage.set(STORE_KEY, JSON.stringify({
+        versions: state.versions,
+        activeVersion: state.activeVersion
+      }), true);
+      syncStatus = 'synced';
+    }catch(e){
+      syncStatus = 'error';
+    }
+    renderLockBar();
+  }
+
+  async function loadState(){
+    try{
+      const res = await window.storage.get(STORE_KEY, true);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        if(parsed && Array.isArray(parsed.versions) && parsed.versions.length){
+          state.versions = parsed.versions;
+          state.activeVersion = Math.min(parsed.activeVersion || 0, parsed.versions.length-1);
+        }
+      }
+      syncStatus = 'synced';
+    }catch(e){
+      // nothing saved yet — keep the default template
+      syncStatus = 'synced';
+    }
+  }
+
+  function startPolling(){
+    setInterval(async () => {
+      if(isEditor) return; // the editor's own tab is the source of truth while editing
+      try{
+        const res = await window.storage.get(STORE_KEY, true);
+        if(res && res.value){
+          const parsed = JSON.parse(res.value);
+          const incoming = JSON.stringify(parsed);
+          const current = JSON.stringify({ versions: state.versions, activeVersion: state.activeVersion });
+          if(incoming !== current && parsed && Array.isArray(parsed.versions) && parsed.versions.length){
+            suppressSave = true;
+            state.versions = parsed.versions;
+            state.activeVersion = Math.min(parsed.activeVersion || 0, parsed.versions.length-1);
+            render();
+            suppressSave = false;
+          }
+        }
+      }catch(e){ /* ignore transient errors, try again next tick */ }
+    }, 5000);
+  }
+
+  function renderLockBar(){
+    const bar = document.getElementById('lockBar');
+    bar.innerHTML = '';
+
+    const status = document.createElement('div');
+    status.className = 'lock-status';
+    const dot = document.createElement('span');
+    dot.className = 'lock-dot' + (syncStatus==='synced' ? '' : ' off');
+    status.appendChild(dot);
+    const label = document.createElement('span');
+    label.textContent =
+      syncStatus==='loading' ? 'Loading schedule…' :
+      syncStatus==='saving' ? 'Saving…' :
+      syncStatus==='error' ? 'Could not sync — check your connection' :
+      'Synced — everyone viewing this link sees the same schedule';
+    status.appendChild(label);
+    bar.appendChild(status);
+
+    if(isEditor){
+      const badge = document.createElement('button');
+      badge.className = 'lock-btn on';
+      badge.textContent = '✓ Editing unlocked';
+      badge.title = 'Click to lock editing again';
+      badge.addEventListener('click', () => { isEditor = false; render(); });
+      bar.appendChild(badge);
+    } else {
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.className = 'lock-pass';
+      input.placeholder = 'Passcode to edit';
+      const unlockBtn = document.createElement('button');
+      unlockBtn.className = 'lock-btn';
+      unlockBtn.textContent = 'Unlock editing';
+      const err = document.createElement('span');
+      err.className = 'lock-err';
+
+      function tryUnlock(){
+        if(input.value === EDIT_PASSCODE){
+          isEditor = true;
+          render();
+        } else {
+          err.textContent = 'Wrong passcode';
+        }
+      }
+      unlockBtn.addEventListener('click', tryUnlock);
+      input.addEventListener('keydown', e => { if(e.key==='Enter') tryUnlock(); });
+
+      bar.appendChild(input);
+      bar.appendChild(unlockBtn);
+      bar.appendChild(err);
+    }
+  }
+
+  function renderVersionTabs(){
+    const bar = document.getElementById('versionBar');
+    bar.innerHTML = '';
+
+    const selectWrap = document.createElement('div');
+    selectWrap.className = 'version-select-wrap';
+    const select = document.createElement('select');
+    select.className = 'version-select';
+    state.versions.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = v.name;
+      if(i === state.activeVersion) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', () => {
+      state.activeVersion = parseInt(select.value, 10);
+      render();
+    });
+    selectWrap.appendChild(select);
+    bar.appendChild(selectWrap);
+
+    if(!isEditor) return;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'version-name-input';
+    nameInput.value = state.versions[state.activeVersion].name;
+    nameInput.title = 'Rename this version';
+    nameInput.addEventListener('change', () => {
+      const v = state.versions[state.activeVersion];
+      v.name = nameInput.value.trim().slice(0,24) || v.name;
+      renderVersionTabs();
+    });
+    nameInput.addEventListener('keydown', e => { if(e.key==='Enter') nameInput.blur(); });
+    bar.appendChild(nameInput);
+
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'version-btn';
+    dupBtn.textContent = '+ Duplicate';
+    dupBtn.title = 'Start a new version copied from the one you\'re viewing';
+    dupBtn.addEventListener('click', () => {
+      const src = state.versions[state.activeVersion];
+      state.versions.push({ id:newId(), name: src.name + ' copy', shifts: cloneShifts(src.shifts) });
+      state.activeVersion = state.versions.length-1;
+      render();
+    });
+    bar.appendChild(dupBtn);
+
+    const blankBtn = document.createElement('button');
+    blankBtn.className = 'version-btn';
+    blankBtn.textContent = '+ Blank';
+    blankBtn.addEventListener('click', () => {
+      state.versions.push({ id:newId(), name: 'Idea ' + (state.versions.length+1), shifts: defaultShifts() });
+      state.activeVersion = state.versions.length-1;
+      render();
+    });
+    bar.appendChild(blankBtn);
+
+    if(state.versions.length > 1){
+      const delBtn = document.createElement('button');
+      delBtn.className = 'version-btn danger';
+      delBtn.textContent = 'Delete';
+      delBtn.title = 'Delete this version';
+      delBtn.addEventListener('click', () => {
+        const v = state.versions[state.activeVersion];
+        state.versions = state.versions.filter(x => x.id !== v.id);
+        if(state.activeVersion >= state.versions.length) state.activeVersion = state.versions.length-1;
+        render();
+      });
+      bar.appendChild(delBtn);
+    }
+  }
+
+  function render(){
+    renderLockBar();
+    renderVersionTabs();
+    const container = document.getElementById('dayContainer');
+    container.innerHTML = '';
+
+    const dayEl = document.createElement('div');
+    dayEl.className = 'day';
+
+    const head = document.createElement('div');
+    head.className = 'day-head';
+    head.innerHTML = `<h2>Shift template</h2><span>${minutesLabel(START_MIN)} – ${minutesLabel(END_MIN)}</span>`;
+    dayEl.appendChild(head);
+
+    const gridArea = document.createElement('div');
+    gridArea.className = 'grid-area';
+
+    const gutter = document.createElement('div');
+    gutter.className = 'gutter';
+    gutter.style.height = (ROWS*ROW_H)+'px';
+    gutter.style.marginTop = '26px';
+    for(let r=0;r<=ROWS;r++){
+      if(r%2===0){
+        const lab = document.createElement('div');
+        lab.className = 'lab';
+        lab.style.top = (r*ROW_H)+'px';
+        lab.textContent = minutesLabel(START_MIN + r*STEP);
+        gutter.appendChild(lab);
+      }
+    }
+    gridArea.appendChild(gutter);
+
+    const shiftCols = document.createElement('div');
+    shiftCols.className = 'shift-cols';
+
+    currentShifts().forEach(shift => {
+      const col = document.createElement('div');
+      col.className = 'shift-col';
+
+      const shHead = document.createElement('div');
+      shHead.className = 'shift-head';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'shift-label';
+      labelEl.style.background = shift.color;
+      labelEl.textContent = shift.label;
+      labelEl.title = isEditor ? 'Click to rename' : shift.label;
+      labelEl.contentEditable = isEditor ? 'true' : 'false';
+      labelEl.spellcheck = false;
+      labelEl.addEventListener('blur', () => {
+        if(!isEditor) return;
+        const val = labelEl.textContent.trim().slice(0,6) || shift.label;
+        shift.label = val;
+        render();
+      });
+      labelEl.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); labelEl.blur(); }});
+      shHead.appendChild(labelEl);
+      if(isEditor){
+        const rm = document.createElement('div');
+        rm.className = 'shift-remove';
+        rm.textContent = '×';
+        rm.title = 'Remove this shift column';
+        rm.addEventListener('click', () => {
+          state.versions[state.activeVersion].shifts = currentShifts().filter(s => s.id !== shift.id);
+          render();
+        });
+        shHead.appendChild(rm);
+      }
+      col.appendChild(shHead);
+
+      const track = document.createElement('div');
+      track.className = 'track' + (isEditor ? '' : ' readonly');
+      track.style.height = (ROWS*ROW_H)+'px';
+
+      for(let r=2;r<ROWS;r+=2){
+        const hl = document.createElement('div');
+        hl.className = 'hour-line';
+        hl.style.top = (r*ROW_H)+'px';
+        track.appendChild(hl);
+      }
+
+      if(isEditor) attachTrackInteractions(track, shift);
+      shift.blocks.forEach(b => track.appendChild(renderBlock(b, shift)));
+      getBreakSegments(shift).forEach(seg => track.appendChild(renderBreakSeg(seg)));
+
+      col.appendChild(track);
+
+      const stats = document.createElement('div');
+      stats.className = 'shift-stats';
+      const {work, brk} = shiftHours(shift);
+      stats.innerHTML = `<span class="lbl">Work</span> <b>${fmtHours(work)}</b> · <span class="lbl">Break</span> <b>${fmtHours(brk)}</b>`;
+      col.appendChild(stats);
+
+      shiftCols.appendChild(col);
+    });
+
+    if(isEditor){
+      const addCol = document.createElement('div');
+      addCol.className = 'add-shift';
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ shift';
+      addBtn.addEventListener('click', () => {
+        const label = nextLabel(currentShifts());
+        const color = PALETTE[currentShifts().length % PALETTE.length];
+        currentShifts().push({ id:newId(), label, color, blocks:[] });
+        render();
+      });
+      addCol.appendChild(addBtn);
+      shiftCols.appendChild(addCol);
+    }
+
+    gridArea.appendChild(shiftCols);
+    dayEl.appendChild(gridArea);
+
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    currentShifts().forEach(s => {
+      legend.innerHTML += `<span><span class="sw" style="background:${s.color}"></span>${s.label} shift · solid = work, striped gap = auto break</span>`;
+    });
+    dayEl.appendChild(legend);
+
+    let dayWork=0, dayBreak=0;
+    currentShifts().forEach(s => { const {work,brk} = shiftHours(s); dayWork+=work; dayBreak+=brk; });
+    const totalLine = document.createElement('div');
+    totalLine.className = 'day-total';
+    totalLine.innerHTML = `
+      <span>Per day — Work <b>${fmtHours(dayWork)}</b> · Break <b>${fmtHours(dayBreak)}</b> · Total <b>${fmtHours(dayWork+dayBreak)}</b></span>
+      <span>Weekend (Sat+Sun) — Work <b>${fmtHours(dayWork*2)}</b> · Break <b>${fmtHours(dayBreak*2)}</b> · Total <b>${fmtHours((dayWork+dayBreak)*2)}</b></span>
+    `;
+    dayEl.appendChild(totalLine);
+
+    container.appendChild(dayEl);
+
+    if(isEditor) scheduleSave();
+  }
+
+  function shiftHours(shift){
+    let work = 0;
+    shift.blocks.forEach(b => { work += (b.end-b.start); });
+    let brk = 0;
+    getBreakSegments(shift).forEach(seg => { brk += (seg.end-seg.start); });
+    return {work, brk};
+  }
+
+  function getBreakSegments(shift){
+    const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
+    const segs = [];
+    for(let i=0;i<sorted.length-1;i++){
+      const gapStart = sorted[i].end, gapEnd = sorted[i+1].start;
+      if(gapEnd > gapStart) segs.push({start:gapStart, end:gapEnd});
+    }
+    return segs;
+  }
+
+  function renderBreakSeg(seg){
+    const el = document.createElement('div');
+    el.className = 'break-seg';
+    el.style.top = (seg.start*ROW_H)+'px';
+    el.style.height = ((seg.end-seg.start)*ROW_H - 2)+'px';
+    if(seg.end-seg.start >= 2){
+      el.textContent = 'Break ' + fmtHours(seg.end-seg.start);
+    }
+    return el;
+  }
+
+  function renderBlock(b, shift){
+    const el = document.createElement('div');
+    el.className = 'block';
+    el.style.top = (b.start*ROW_H)+'px';
+    el.style.height = ((b.end-b.start)*ROW_H - 2)+'px';
+    el.style.background = shift.color;
+    el.textContent = fmtHours(b.end-b.start);
+
+    if(!isEditor){
+      el.style.cursor = 'default';
+      el.title = minutesLabel(START_MIN+b.start*STEP) + '–' + minutesLabel(START_MIN+b.end*STEP) + ' · ' + fmtHours(b.end-b.start);
+      return el;
+    }
+
+    el.title = minutesLabel(START_MIN+b.start*STEP) + '–' + minutesLabel(START_MIN+b.end*STEP) + ' · ' + fmtHours(b.end-b.start) + ' — drag edges to resize, drag middle to move';
+
+    const top = document.createElement('div'); top.className='handle top';
+    const bot = document.createElement('div'); bot.className='handle bottom';
+    const del = document.createElement('div'); del.className='del'; del.textContent='×';
+    del.addEventListener('pointerdown', e => e.stopPropagation());
+    del.addEventListener('click', e => {
+      e.stopPropagation();
+      shift.blocks = shift.blocks.filter(x=>x.id!==b.id);
+      render();
+    });
+    el.appendChild(top); el.appendChild(bot); el.appendChild(del);
+
+    attachBlockInteractions(el, top, bot, b, shift);
+    return el;
+  }
+
+  function neighborBounds(shift, blockId, start, end){
+    let minBound = 0, maxBound = ROWS;
+    shift.blocks.forEach(o => {
+      if(o.id===blockId) return;
+      if(o.end<=start) minBound = Math.max(minBound, o.end);
+      if(o.start>=end) maxBound = Math.min(maxBound, o.start);
+    });
+    return {minBound, maxBound};
+  }
+
+  function attachTrackInteractions(track, shift){
+    let dragging = null;
+    track.addEventListener('pointerdown', e => {
+      if(e.target !== track) return;
+      const rect = track.getBoundingClientRect();
+      const startRow = clampRow((e.clientY-rect.top)/ROW_H);
+      dragging = { startRow, curRow: startRow, moved:false, startClientY:e.clientY };
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointermove', e => {
+      if(!dragging) return;
+      if(Math.abs(e.clientY-dragging.startClientY) > 3) dragging.moved = true;
+      const rect = track.getBoundingClientRect();
+      dragging.curRow = clampRow((e.clientY-rect.top)/ROW_H);
+    });
+    track.addEventListener('pointerup', e => {
+      if(!dragging) return;
+      let s = Math.round(dragging.startRow), en = Math.round(dragging.curRow);
+      if(!dragging.moved){ s = Math.round(dragging.startRow); en = s+2; }
+      if(en < s){ const t=s; s=en; en=t; }
+      en = Math.max(en, s+1);
+      const {minBound, maxBound} = neighborBounds(shift, null, s, en);
+      s = Math.max(s, minBound); en = Math.min(en, maxBound);
+      if(en > s){
+        shift.blocks.push({ id:newId(), start:s, end:en });
+        render();
+      }
+      dragging = null;
+    });
+  }
+
+  function clampRow(r){ return Math.max(0, Math.min(ROWS, r)); }
+
+  function attachBlockInteractions(el, topHandle, botHandle, b, shift){
+    let mode = null, startY=0, origStart=0, origEnd=0, bounds=null, moved=false;
+
+    function begin(e, m){
+      mode = m; moved=false;
+      startY = e.clientY;
+      origStart = b.start; origEnd = b.end;
+      bounds = neighborBounds(shift, b.id, b.start, b.end);
+      el.setPointerCapture(e.pointerId);
+      e.stopPropagation();
+    }
+
+    el.addEventListener('pointerdown', e => begin(e,'move'));
+    topHandle.addEventListener('pointerdown', e => begin(e,'top'));
+    botHandle.addEventListener('pointerdown', e => begin(e,'bottom'));
+
+    el.addEventListener('pointermove', e => {
+      if(!mode) return;
+      const dy = e.clientY - startY;
+      if(Math.abs(dy) > 3) moved = true;
+      const dRows = Math.round(dy/ROW_H);
+      if(mode==='move'){
+        let ns = origStart + dRows, ne = origEnd + dRows;
+        const len = origEnd-origStart;
+        ns = Math.max(bounds.minBound, Math.min(ns, bounds.maxBound-len));
+        ne = ns+len;
+        b.start = ns; b.end = ne;
+      } else if(mode==='top'){
+        let ns = Math.min(origEnd-1, Math.max(bounds.minBound, origStart+dRows));
+        b.start = ns;
+      } else if(mode==='bottom'){
+        let ne = Math.max(origStart+1, Math.min(bounds.maxBound, origEnd+dRows));
+        b.end = ne;
+      }
+      el.style.top = (b.start*ROW_H)+'px';
+      el.style.height = ((b.end-b.start)*ROW_H-2)+'px';
+    });
+
+    el.addEventListener('pointerup', e => {
+      if(!mode){ return; }
+      mode = null;
+      render();
+    });
+  }
+
+  (async function init(){
+    suppressSave = true;
+    await loadState();
+    suppressSave = false;
+    render();
+    startPolling();
+  })();
+})();
+</script>

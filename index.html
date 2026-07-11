@@ -341,6 +341,95 @@
   }
   .print-btn:hover{background:var(--accent); color:var(--panel);}
 
+  .date-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-top:16px;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .date-row input{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13px;
+    padding:6px 10px;
+    border-radius:8px;
+    width:150px;
+  }
+  .action-row{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-top:10px;
+    flex-wrap:wrap;
+  }
+  .action-row .print-btn{ margin:0; }
+  .clear-btn{
+    display:block;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--muted);
+    font-size:13px;
+    font-weight:700;
+    padding:9px 18px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .clear-btn:hover{color:#b23b3b; border-color:#b23b3b;}
+
+  .confirm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(44,42,82,.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:100;
+  }
+  .confirm-box{
+    background:var(--panel);
+    border:1px solid var(--accent);
+    border-radius:14px;
+    padding:20px;
+    max-width:320px;
+    text-align:center;
+  }
+  .confirm-box p{
+    margin:0 0 16px;
+    color:var(--text);
+    font-size:14px;
+    line-height:1.5;
+  }
+  .confirm-btns{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+  }
+  .confirm-cancel{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 16px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .confirm-clear{
+    background:#b23b3b;
+    border:1px solid #b23b3b;
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    padding:9px 16px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+
   .print-area{ display:none; }
 
   @media print{
@@ -370,6 +459,7 @@
     .print-area .shift-block .name{ font-weight:700; }
     .print-area .shift-block .line{ margin-left:8px; }
     .print-area .totals{ margin-top:4px; font-weight:700; }
+    .print-area .starting{ text-align:center; margin-top:10px; font-weight:700; }
   }
 </style>
 
@@ -380,8 +470,21 @@
   <div id="versionBar" class="version-bar"></div>
   <div id="entryEditor" class="entry-panel"></div>
   <div id="dayContainer"></div>
-  <button id="printBtn" class="print-btn">🖨 Print schedule</button>
+  <div id="dateRow" class="date-row"></div>
+  <div class="action-row">
+    <button id="printBtn" class="print-btn">🖨 Print schedule</button>
+    <button id="clearBtn" class="clear-btn">🗑 Clear schedule</button>
+  </div>
   <div id="printArea" class="print-area"></div>
+  <div id="confirmOverlay" class="confirm-overlay" style="display:none;">
+    <div class="confirm-box">
+      <p>Clear every shift time in the current version? This can't be undone once you confirm.</p>
+      <div class="confirm-btns">
+        <button id="confirmCancel" class="confirm-cancel">Cancel</button>
+        <button id="confirmClear" class="confirm-clear">Clear everything</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -426,7 +529,7 @@
   }
 
   const state = {
-    versions: [ { id:newId(), name:'Idea 1', shifts: defaultShifts() } ],
+    versions: [ { id:newId(), name:'Idea 1', shifts: defaultShifts(), effectiveDate:'' } ],
     activeVersion: 0
   };
 
@@ -447,8 +550,9 @@
   firebase.initializeApp(firebaseConfig);
   const dbRef = firebase.database().ref('shiftSchedule/state');
 
-  let suppressSave = false;
+  let suppressSave = true; // stays true until the first Firebase read completes
   let saveTimer = null;
+  let firstSyncDone = false;
 
   function scheduleSave(){
     if(suppressSave) return;
@@ -458,18 +562,36 @@
     }, 400);
   }
 
+  function applyRemote(val){
+    suppressSave = true;
+    state.versions = val.versions;
+    state.activeVersion = Math.min(val.activeVersion || 0, val.versions.length-1);
+    render();
+    suppressSave = false;
+  }
+
   function listenForRemoteChanges(){
     dbRef.on('value', snapshot => {
       const val = snapshot.val();
-      if(!val || !Array.isArray(val.versions) || !val.versions.length) return;
-      const incoming = JSON.stringify({ versions: val.versions, activeVersion: val.activeVersion });
-      const current = JSON.stringify({ versions: state.versions, activeVersion: state.activeVersion });
-      if(incoming === current) return;
-      suppressSave = true;
-      state.versions = val.versions;
-      state.activeVersion = Math.min(val.activeVersion || 0, val.versions.length-1);
-      render();
-      suppressSave = false;
+      const hadData = val && Array.isArray(val.versions) && val.versions.length;
+
+      if(!firstSyncDone){
+        firstSyncDone = true;
+        if(hadData){
+          applyRemote(val); // load whatever's already saved
+        } else {
+          suppressSave = false;
+          render();
+          scheduleSave(); // nothing saved yet anywhere — seed it with our starting template
+        }
+        return;
+      }
+
+      if(hadData){
+        const incoming = JSON.stringify({ versions: val.versions, activeVersion: val.activeVersion });
+        const current = JSON.stringify({ versions: state.versions, activeVersion: state.activeVersion });
+        if(incoming !== current) applyRemote(val);
+      }
     });
   }
 
@@ -606,7 +728,7 @@
     dupBtn.addEventListener('click', () => {
       pushHistory();
       const src = state.versions[state.activeVersion];
-      state.versions.push({ id:newId(), name: src.name + ' copy', shifts: cloneShifts(src.shifts) });
+      state.versions.push({ id:newId(), name: src.name + ' copy', shifts: cloneShifts(src.shifts), effectiveDate: src.effectiveDate || '' });
       state.activeVersion = state.versions.length-1;
       render();
     });
@@ -617,7 +739,7 @@
     blankBtn.textContent = '+ Blank';
     blankBtn.addEventListener('click', () => {
       pushHistory();
-      state.versions.push({ id:newId(), name: 'Idea ' + (state.versions.length+1), shifts: defaultShifts() });
+      state.versions.push({ id:newId(), name: 'Idea ' + (state.versions.length+1), shifts: defaultShifts(), effectiveDate:'' });
       state.activeVersion = state.versions.length-1;
       render();
     });
@@ -804,6 +926,7 @@
   function render(){
     renderVersionTabs();
     renderEntryEditor();
+    renderDateRow();
 
     const container = document.getElementById('dayContainer');
     container.innerHTML = '';
@@ -882,6 +1005,28 @@
     scheduleSave();
   }
 
+  function renderDateRow(){
+    const row = document.getElementById('dateRow');
+    row.innerHTML = '';
+    const version = state.versions[state.activeVersion];
+
+    const label = document.createElement('label');
+    label.textContent = 'Starting date (optional, shows on printout):';
+    label.style.fontSize = '12px';
+    row.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'e.g. 7/1';
+    input.value = version.effectiveDate || '';
+    input.addEventListener('focus', () => pushHistory());
+    input.addEventListener('change', () => {
+      version.effectiveDate = input.value.trim().slice(0,20);
+      render();
+    });
+    row.appendChild(input);
+  }
+
   function buildPrintArea(){
     const area = document.getElementById('printArea');
     const version = state.versions[state.activeVersion];
@@ -890,19 +1035,27 @@
     currentShifts().forEach(shift => {
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       const {work, brk} = shiftHours(shift);
-      html += `<div class="shift-block"><div class="name">Shift ${shift.label}</div>`;
+
       if(sorted.length === 0){
-        html += `<div class="line">(no times set)</div>`;
+        html += `<div class="shift-block"><div class="name">${shift.label} : (no times set)</div></div>`;
+      } else if(sorted.length === 1){
+        const b = sorted[0];
+        html += `<div class="shift-block"><div class="name">${shift.label} : ${minutesLabel(START_MIN+b.start*STEP)} ~ ${minutesLabel(START_MIN+b.end*STEP)}</div>`;
+        html += `<div class="line totals">Work ${fmtHours(work)}${brk>0 ? ' · Break '+fmtHours(brk) : ''}</div></div>`;
       } else {
+        html += `<div class="shift-block"><div class="name">${shift.label} {</div>`;
         sorted.forEach(b => {
-          html += `<div class="line">${minutesLabel(START_MIN+b.start*STEP)} – ${minutesLabel(START_MIN+b.end*STEP)}</div>`;
+          html += `<div class="line">${minutesLabel(START_MIN+b.start*STEP)} ~ ${minutesLabel(START_MIN+b.end*STEP)}</div>`;
         });
+        html += `<div class="name">}</div>`;
+        html += `<div class="line totals">Work ${fmtHours(work)}${brk>0 ? ' · Break '+fmtHours(brk) : ''}</div></div>`;
       }
-      html += `<div class="line totals">Work ${fmtHours(work)}${brk>0 ? ' · Break '+fmtHours(brk) : ''}</div>`;
-      html += `</div>`;
     });
 
     html += `<div class="rule"></div>`;
+    if(version.effectiveDate){
+      html += `<div class="starting">Starting ${version.effectiveDate}</div>`;
+    }
     area.innerHTML = html;
   }
 
@@ -911,7 +1064,20 @@
     window.print();
   });
 
-  render();
+  const overlay = document.getElementById('confirmOverlay');
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    overlay.style.display = 'flex';
+  });
+  document.getElementById('confirmCancel').addEventListener('click', () => {
+    overlay.style.display = 'none';
+  });
+  document.getElementById('confirmClear').addEventListener('click', () => {
+    pushHistory();
+    currentShifts().forEach(s => { s.blocks = []; });
+    overlay.style.display = 'none';
+    render();
+  });
+
   listenForRemoteChanges();
 })();
 </script>

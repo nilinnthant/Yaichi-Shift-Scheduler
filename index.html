@@ -570,10 +570,39 @@
     }, 400);
   }
 
+  function normalizeBlocks(rawBlocks){
+    if(!Array.isArray(rawBlocks)) return [];
+    return rawBlocks
+      .filter(b => b && typeof b.start === 'number' && typeof b.end === 'number')
+      .map(b => ({ id: b.id || newId(), start: b.start, end: b.end }));
+  }
+
+  function normalizeShifts(rawShifts){
+    if(!Array.isArray(rawShifts)) return [];
+    return rawShifts.map((s, i) => ({
+      id: (s && s.id) || newId(),
+      label: (s && s.label) || String.fromCharCode(65+i),
+      color: (s && s.color) || PALETTE[i % PALETTE.length],
+      blocks: normalizeBlocks(s && s.blocks)
+    }));
+  }
+
+  function normalizeVersions(rawVersions){
+    if(!Array.isArray(rawVersions) || !rawVersions.length) return null;
+    return rawVersions.map(v => ({
+      id: (v && v.id) || newId(),
+      name: (v && v.name) || 'Idea',
+      effectiveDate: (v && v.effectiveDate) || '',
+      shifts: normalizeShifts(v && v.shifts)
+    }));
+  }
+
   function applyRemote(val){
+    const cleaned = normalizeVersions(val.versions);
+    if(!cleaned) return; // nothing usable — leave current state alone
     suppressSave = true;
-    state.versions = val.versions;
-    state.activeVersion = Math.min(val.activeVersion || 0, val.versions.length-1);
+    state.versions = cleaned;
+    state.activeVersion = Math.min(val.activeVersion || 0, cleaned.length-1);
     render();
     suppressSave = false;
   }
@@ -955,6 +984,15 @@
   }
 
   function render(){
+    try{
+      renderInner();
+    }catch(err){
+      const status = document.getElementById('syncStatus');
+      if(status) status.textContent = 'Something went wrong displaying the schedule: ' + err.message + ' — try the Undo button, or reload the page.';
+    }
+  }
+
+  function renderInner(){
     renderVersionTabs();
     renderEntryEditor();
     renderDateRow();

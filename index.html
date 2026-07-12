@@ -257,7 +257,7 @@
     width:26px;
     flex:0 0 auto;
     position:relative;
-    margin-left:8px;
+    margin-right:8px;
   }
   .cov-seg{
     position:absolute;
@@ -1124,8 +1124,6 @@
       shiftCols.appendChild(col);
     });
 
-    gridArea.appendChild(shiftCols);
-
     // coverage column — colored by how many shifts are staffed at once
     const covCol = document.createElement('div');
     covCol.className = 'coverage-col-right';
@@ -1159,6 +1157,7 @@
       }
     }
     gridArea.appendChild(covCol);
+    gridArea.appendChild(shiftCols);
 
     dayEl.appendChild(gridArea);
     container.appendChild(dayEl);

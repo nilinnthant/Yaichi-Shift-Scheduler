@@ -1138,6 +1138,11 @@
 
   function buildChartBodyHtml(printRowH, colW){
     const version = state.versions[state.activeVersion];
+    const headerH = 33; // matches the label column's margin-top below
+
+    const shifts = currentShifts();
+    const eventRows = new Set();
+    shifts.forEach(s => s.blocks.forEach(b => { eventRows.add(b.start); eventRows.add(b.end); }));
 
     let labelsHtml = '';
     for(let r=0;r<=ROWS;r++){
@@ -1145,7 +1150,7 @@
     }
 
     let colsHtml = '';
-    currentShifts().forEach(shift => {
+    shifts.forEach(shift => {
       let barsHtml = '';
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       sorted.forEach(b => {
@@ -1156,15 +1161,24 @@
       });
       colsHtml += `<div style="flex:0 0 ${colW}px;">` +
         `<div style="text-align:center;font-weight:900;font-size:20px;border:3px solid #000;border-radius:6px;margin-bottom:5px;padding:3px 0;">${shift.label}</div>` +
-        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;border:2px solid #000;">${barsHtml}</div>` +
+        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;">${barsHtml}</div>` +
         `</div>`;
+    });
+
+    // horizontal lines across every column, only where a shift actually clocks in or out
+    let eventLinesHtml = '';
+    eventRows.forEach(r => {
+      eventLinesHtml += `<div style="position:absolute;left:0;right:0;top:${headerH + r*printRowH}px;border-top:2px solid #000;"></div>`;
     });
 
     return `<div class="title">${version.name}</div>` +
       (version.effectiveDate ? `<div class="sub">Starting ${version.effectiveDate}</div>` : '') +
+      '<div style="position:relative;">' +
       '<div style="display:flex;">' +
-      `<div style="position:relative;width:58px;height:${ROWS*printRowH}px;margin-top:33px;flex:0 0 auto;">${labelsHtml}</div>` +
+      `<div style="position:relative;width:58px;height:${ROWS*printRowH}px;margin-top:${headerH}px;flex:0 0 auto;">${labelsHtml}</div>` +
       `<div style="display:flex;gap:8px;">${colsHtml}</div>` +
+      '</div>' +
+      eventLinesHtml +
       '</div>';
   }
 

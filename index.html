@@ -23,7 +23,11 @@
     margin:0;
     padding:0;
   }
-  .wrap{padding:18px 14px 40px;}
+  .wrap{
+    max-width:1000px;
+    margin:0 auto;
+    padding:24px 32px 40px;
+  }
   h1{
     font-size:24px;
     margin:0 0 2px;
@@ -545,15 +549,14 @@
   @media print{
     @page{ margin: 0.5in; }
     body *{ visibility:hidden; }
-    #printPreview, #printPreview *{ visibility:visible; }
-    #printPreview{
+    #dayContainer, #dayContainer *{ visibility:visible; }
+    #dayContainer{
       display:block;
       position:absolute;
       top:0; left:0;
       width:100%;
-      box-shadow:none;
-      max-width:none;
     }
+    .day{ border:none; box-shadow:none; }
   }
 </style>
 </head>
@@ -571,7 +574,7 @@
   </div>
   <div id="dateRow" class="date-row"></div>
   <div class="preview-wrap">
-    <p class="preview-label">Print preview</p>
+    <p class="preview-label">Star printer preview (black &amp; white)</p>
     <div id="printPreview" class="print-preview"></div>
   </div>
   <div class="action-row">
@@ -1372,13 +1375,7 @@
   }
 
   document.getElementById('printBtn').addEventListener('click', () => {
-    const container = document.getElementById('printPreview');
-    // swap to regular-paper-sized dimensions just for the actual print
-    container.innerHTML = buildChartBodyHtml(30, 100, true) + buildShiftHoursHtml();
     window.print();
-    // restore the compact on-screen preview afterward
-    window.addEventListener('afterprint', renderPrintPreview, { once: true });
-    setTimeout(renderPrintPreview, 1000); // fallback in case afterprint doesn't fire
   });
 
   // ---- Star PassPRNT thermal printing ----

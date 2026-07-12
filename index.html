@@ -253,6 +253,24 @@
     flex:1 1 auto;
     overflow-x:auto;
   }
+  .coverage-col-right{
+    width:26px;
+    flex:0 0 auto;
+    position:relative;
+    margin-left:8px;
+  }
+  .cov-seg{
+    position:absolute;
+    left:0;right:0;
+    border-radius:4px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:700;
+    color:#fff;
+    text-shadow:0 1px 1px rgba(0,0,0,.35);
+  }
   .shift-col{
     flex:0 0 84px;
     display:flex;
@@ -1107,6 +1125,41 @@
     });
 
     gridArea.appendChild(shiftCols);
+
+    // coverage column — colored by how many shifts are staffed at once
+    const covCol = document.createElement('div');
+    covCol.className = 'coverage-col-right';
+    covCol.style.height = (ROWS*ROW_H)+'px';
+    covCol.style.marginTop = '26px';
+
+    const COVERAGE_COLORS = ['#e0e0e0', '#e05a5a', '#ff9f40', '#4caf50', '#4a90d9', '#9b59b6'];
+    const coverage = [];
+    for(let r=0;r<ROWS;r++){
+      const count = currentShifts().reduce((n, s) => {
+        const covered = s.blocks.some(b => b.start<=r && b.end>r);
+        return n + (covered ? 1 : 0);
+      }, 0);
+      coverage.push(count);
+    }
+    let runStart = 0;
+    for(let r=1;r<=ROWS;r++){
+      if(r===ROWS || coverage[r] !== coverage[runStart]){
+        const count = coverage[runStart];
+        if(count > 0){
+          const seg = document.createElement('div');
+          seg.className = 'cov-seg';
+          seg.style.top = (runStart*ROW_H)+'px';
+          seg.style.height = ((r-runStart)*ROW_H - 2)+'px';
+          seg.style.background = COVERAGE_COLORS[Math.min(count, COVERAGE_COLORS.length-1)];
+          seg.textContent = count;
+          seg.title = count + ' shift' + (count===1?'':'s') + ' staffed ' + minutesLabel(START_MIN+runStart*STEP) + '–' + minutesLabel(START_MIN+r*STEP);
+          covCol.appendChild(seg);
+        }
+        runStart = r;
+      }
+    }
+    gridArea.appendChild(covCol);
+
     dayEl.appendChild(gridArea);
     container.appendChild(dayEl);
 
@@ -1184,19 +1237,40 @@
       '</div>';
   }
 
+  function buildShiftHoursText(){
+    const lines = ['Shift Hours', '='.repeat('Shift Hours'.length), ''];
+    currentShifts().forEach(shift => {
+      const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
+      if(sorted.length === 0) return;
+      sorted.forEach(b => {
+        lines.push(shift.label + ': ' + minutesLabel(START_MIN+b.start*STEP) + ' ~ ' + minutesLabel(START_MIN+b.end*STEP));
+      });
+      lines.push('');
+    });
+    return lines.join('\n').replace(/\n+$/,'');
+  }
+
+  function buildShiftHoursHtml(){
+    const escaped = buildShiftHoursText()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return '<pre style="font-family:monospace;font-size:14px;font-weight:700;line-height:1.5;white-space:pre-wrap;margin-top:20px;">' + escaped + '</pre>';
+  }
+
   function buildPrintHtml(){
     const chartBody = buildChartBodyHtml(20, 76, false); // monochrome — thermal printers can't do color
     return '<html><head><meta charset="utf-8"><style>' +
       'body{font-family:monospace;margin:0;padding:10px;color:#000;-webkit-print-color-adjust:exact;}' +
       '.title{font-size:24px;font-weight:900;text-align:center;margin-bottom:3px;}' +
       '.sub{font-size:15px;font-weight:700;text-align:center;margin-bottom:16px;}' +
-      '</style></head><body>' + chartBody + '</body></html>';
+      '</style></head><body>' + chartBody + buildShiftHoursHtml() + '</body></html>';
   }
 
   function renderPrintPreview(){
     const container = document.getElementById('printPreview');
     if(!container) return;
-    container.innerHTML = buildChartBodyHtml(16, 56, true); // color — just for on-screen viewing
+    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // color — just for on-screen viewing
   }
 
   function firePrintURI(htmlContent){

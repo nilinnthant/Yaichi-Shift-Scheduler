@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekend Shift Template</title>
 <style>
   :root{
     --bg:#f5efdf;
@@ -113,6 +119,30 @@
   .undo-btn:disabled{opacity:.45; cursor:default;}
 
   /* ---- entry editor ---- */
+  .editor-calendar-row{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .editor-calendar-row .entry-panel{
+    flex:0 0 380px;
+    max-width:380px;
+    margin-bottom:0;
+  }
+  .editor-calendar-row #dayContainer{
+    flex:1 1 420px;
+    min-width:300px;
+  }
+  @media (max-width: 720px){
+    .editor-calendar-row{
+      flex-direction:column;
+    }
+    .editor-calendar-row .entry-panel{
+      flex:1 1 auto;
+      max-width:none;
+    }
+  }
   .entry-panel{
     background:var(--panel);
     border:1px solid var(--line);
@@ -164,13 +194,14 @@
     margin:6px 0;
     flex-wrap:wrap;
   }
-  .entry-row input[type="time"]{
+  .entry-row select{
     background:var(--bg);
     border:1px solid var(--line);
     color:var(--text);
     font-size:13px;
     padding:6px 8px;
     border-radius:6px;
+    max-width:130px;
   }
   .entry-row .dash{color:var(--muted); font-size:12px;}
   .entry-row-remove{
@@ -246,6 +277,13 @@
     font-size:10px;
     color:var(--muted);
     white-space:nowrap;
+  }
+  .gutter .closing-lab{
+    color:var(--accent);
+    font-weight:700;
+  }
+  .hour-line.closing-line{
+    border-top:1.5px solid var(--accent);
   }
   .shift-cols{
     display:flex;
@@ -352,6 +390,16 @@
   .shift-stats b{color:var(--text);}
   .shift-stats .lbl{color:var(--muted);}
 
+  .combined-total{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .combined-total b{color:var(--accent);}
+
   .print-btn{
     display:block;
     margin:18px auto 0;
@@ -404,6 +452,25 @@
     cursor:pointer;
   }
   .clear-btn:hover{color:#b23b3b; border-color:#b23b3b;}
+
+  .host-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-top:14px;
+    font-size:12.5px;
+    color:var(--text);
+  }
+  .host-row input{ width:auto; height:auto; }
+  .footnote{
+    max-width:480px;
+    margin:8px auto 0;
+    font-size:11.5px;
+    color:var(--muted);
+    line-height:1.5;
+    text-align:center;
+  }
 
   .preview-wrap{
     margin-top:18px;
@@ -483,6 +550,7 @@
 
 
   @media print{
+    @page{ margin: 0.5in; }
     body *{ visibility:hidden; }
     #printPreview, #printPreview *{ visibility:visible; }
     #printPreview{
@@ -495,6 +563,8 @@
     }
   }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <h1>Weekend Shift Template</h1>
@@ -502,8 +572,10 @@
   <p id="syncStatus" class="sync-status"></p>
 
   <div id="versionBar" class="version-bar"></div>
-  <div id="entryEditor" class="entry-panel"></div>
-  <div id="dayContainer"></div>
+  <div class="editor-calendar-row">
+    <div id="entryEditor" class="entry-panel"></div>
+    <div id="dayContainer"></div>
+  </div>
   <div id="dateRow" class="date-row"></div>
   <div class="preview-wrap">
     <p class="preview-label">Print preview</p>
@@ -511,8 +583,15 @@
   </div>
   <div class="action-row">
     <button id="printBtn" class="print-btn">🖨 Print / PDF</button>
+    <button id="starPrintBtn" class="print-btn">🖨 Print to Star Printer</button>
+    <button id="downloadImgBtn" class="print-btn">📷 Download image</button>
     <button id="clearBtn" class="clear-btn">🗑 Clear schedule</button>
   </div>
+  <div class="host-row">
+    <input type="checkbox" id="printerHostToggle" />
+    <label for="printerHostToggle">This device is connected to the Star printer</label>
+  </div>
+  <p class="footnote">Use <b>Print / PDF</b> for a regular full-page printout or PDF. Use <b>Print to Star Printer</b> for the thermal receipt printer — on the device physically connected to it (with the free <b>Star PassPRNT</b> app already set up), check the box above once, then tap the button from any device to print there automatically.</p>
   <div id="confirmOverlay" class="confirm-overlay" style="display:none;">
     <div class="confirm-box">
       <p>Clear every shift time in the current version? This can't be undone once you confirm.</p>
@@ -526,13 +605,22 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (function(){
-  const START_MIN = 8*60;      // 8:00 AM
-  const END_MIN   = 24*60;     // 12:00 AM
+  const START_MIN = 11*60;     // 11:00 AM
   const STEP      = 30;        // minutes per row
+  const CLOSE_MIN = 21*60;     // 9:00 PM — restaurant closing time
+  const END_MIN   = CLOSE_MIN + STEP; // grid stops right after closing — no rows beyond it
   const ROWS      = (END_MIN-START_MIN)/STEP;
   const ROW_H     = 15;        // px
+  const CLOSE_ROW = ROWS;      // the very last row/boundary is "Closing"
+
+  function yFor(row, rowH){ return row*rowH; }
+
+  function rowLabel(row){
+    return row === CLOSE_ROW ? 'Closing' : minutesLabel(START_MIN+row*STEP);
+  }
 
   const PALETTE = ['#2dd4bf','#e94f8a','#ff7a59','#5b9dff','#c084fc','#ffd166','#8ee08e'];
 
@@ -584,15 +672,22 @@
     messagingSenderId: "26090414251",
     appId: "1:26090414251:web:5b78bf102373fddb5e57ee"
   };
-  firebase.initializeApp(firebaseConfig);
-  const dbRef = firebase.database().ref('shiftSchedule/state');
+  let dbRef = null;
+  let printQueueRef = null;
+  try{
+    firebase.initializeApp(firebaseConfig);
+    dbRef = firebase.database().ref('shiftSchedule/state');
+    printQueueRef = firebase.database().ref('shiftSchedule/printQueue');
+  }catch(e){
+    // Firebase failed to load (blocked, offline, sandboxed preview, etc.) — app still works locally
+  }
 
   let suppressSave = true; // stays true until the first Firebase read completes
   let saveTimer = null;
   let firstSyncDone = false;
 
   function scheduleSave(){
-    if(suppressSave) return;
+    if(suppressSave || !dbRef) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       dbRef.set({ versions: state.versions, activeVersion: state.activeVersion }).catch(()=>{});
@@ -603,7 +698,11 @@
     if(!Array.isArray(rawBlocks)) return [];
     return rawBlocks
       .filter(b => b && typeof b.start === 'number' && typeof b.end === 'number')
-      .map(b => ({ id: b.id || newId(), start: b.start, end: b.end }));
+      .map(b => {
+        let start = Math.max(0, Math.min(ROWS-1, Math.round(b.start)));
+        let end = Math.max(start+1, Math.min(ROWS, Math.round(b.end)));
+        return { id: b.id || newId(), start, end };
+      });
   }
 
   function normalizeShifts(rawShifts){
@@ -637,6 +736,13 @@
   }
 
   function listenForRemoteChanges(){
+    if(!dbRef){
+      // Firebase never initialized — just show the local template, no sync
+      suppressSave = true;
+      render();
+      return;
+    }
+
     // safety net: if Firebase hasn't responded within 4s, show the local
     // default template anyway rather than leaving the page blank
     const fallbackTimer = setTimeout(() => {
@@ -904,15 +1010,18 @@
         const row = document.createElement('div');
         row.className = 'entry-row';
 
-        const startInput = document.createElement('input');
-        startInput.type = 'time';
-        startInput.step = 1800;
-        startInput.value = rowToTimeValue(b.start);
+        const startInput = document.createElement('select');
+        for(let r=0;r<=ROWS;r++){
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = rowLabel(r);
+          if(r === b.start) opt.selected = true;
+          startInput.appendChild(opt);
+        }
         startInput.addEventListener('focus', () => pushHistory());
         startInput.addEventListener('change', () => {
           const bounds = neighborBounds(shift, b.id, b.start, b.end);
-          let newStart = timeValueToRow(startInput.value);
-          if(newStart === null){ render(); return; }
+          let newStart = parseInt(startInput.value, 10);
           newStart = Math.max(bounds.minBound, Math.min(newStart, bounds.maxBound-1));
           if(newStart >= b.end){
             // start moved past the current end — push end to 2h after the new start
@@ -927,17 +1036,30 @@
         dash.className = 'dash';
         dash.textContent = '–';
 
-        const endInput = document.createElement('input');
-        endInput.type = 'time';
-        endInput.step = 1800;
-        endInput.value = rowToTimeValue(b.end);
+        const endInput = document.createElement('select');
+        for(let r=0;r<=ROWS;r++){
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = rowLabel(r);
+          if(r === b.end) opt.selected = true;
+          endInput.appendChild(opt);
+        }
         endInput.addEventListener('focus', () => pushHistory());
         endInput.addEventListener('change', () => {
-          const bounds = neighborBounds(shift, b.id, b.start, b.end);
-          let newEnd = timeValueToRow(endInput.value);
-          if(newEnd === null){ render(); return; }
-          newEnd = Math.min(bounds.maxBound, Math.max(newEnd, b.start+1));
+          let newEnd = parseInt(endInput.value, 10);
+          newEnd = Math.max(b.start+1, Math.min(ROWS, newEnd));
           b.end = newEnd;
+
+          // if this now runs into the next entry, push that entry's start
+          // to 1h30m after this new end time instead of blocking the edit
+          const siblings = shift.blocks.filter(x => x.id !== b.id).sort((a,c) => a.start-c.start);
+          const nextBlock = siblings.find(x => x.start >= b.start);
+          if(nextBlock && b.end > nextBlock.start){
+            nextBlock.start = Math.min(ROWS, b.end + 3); // +3 rows = 1h30m
+            if(nextBlock.start >= nextBlock.end){
+              nextBlock.end = Math.min(ROWS, nextBlock.start + 2); // keep at least 1h
+            }
+          }
           render();
         });
 
@@ -993,8 +1115,8 @@
   function renderBlock(b, shift){
     const el = document.createElement('div');
     el.className = 'block';
-    el.style.top = (b.start*ROW_H)+'px';
-    el.style.height = ((b.end-b.start)*ROW_H - 2)+'px';
+    el.style.top = yFor(b.start, ROW_H)+'px';
+    el.style.height = (yFor(b.end, ROW_H) - yFor(b.start, ROW_H) - 2)+'px';
     el.style.background = shift.color;
     el.textContent = fmtHours(b.end-b.start);
     el.title = minutesLabel(START_MIN+b.start*STEP) + '–' + minutesLabel(START_MIN+b.end*STEP) + ' · ' + fmtHours(b.end-b.start);
@@ -1004,8 +1126,8 @@
   function renderBreakSeg(seg){
     const el = document.createElement('div');
     el.className = 'break-seg';
-    el.style.top = (seg.start*ROW_H)+'px';
-    el.style.height = ((seg.end-seg.start)*ROW_H - 2)+'px';
+    el.style.top = yFor(seg.start, ROW_H)+'px';
+    el.style.height = (yFor(seg.end, ROW_H) - yFor(seg.start, ROW_H) - 2)+'px';
     if(seg.end-seg.start >= 2){
       el.textContent = 'Break ' + fmtHours(seg.end-seg.start);
     }
@@ -1035,7 +1157,7 @@
 
     const head = document.createElement('div');
     head.className = 'day-head';
-    head.innerHTML = `<h2>Shift template — ${state.versions[state.activeVersion].name}</h2><span>${minutesLabel(START_MIN)} – ${minutesLabel(END_MIN)}</span>`;
+    head.innerHTML = `<h2>Shift template — ${state.versions[state.activeVersion].name}</h2><span>${minutesLabel(START_MIN)} – Closing</span>`;
     dayEl.appendChild(head);
 
     const gridArea = document.createElement('div');
@@ -1043,13 +1165,13 @@
 
     const gutter = document.createElement('div');
     gutter.className = 'gutter';
-    gutter.style.height = (ROWS*ROW_H)+'px';
+    gutter.style.height = yFor(ROWS, ROW_H)+'px';
     gutter.style.marginTop = '26px';
     for(let r=0;r<=ROWS;r++){
       const lab = document.createElement('div');
-      lab.className = 'lab';
-      lab.style.top = (r*ROW_H)+'px';
-      lab.textContent = minutesLabel(START_MIN + r*STEP);
+      lab.className = 'lab' + (r===CLOSE_ROW ? ' closing-lab' : '');
+      lab.style.top = yFor(r, ROW_H)+'px';
+      lab.textContent = rowLabel(r);
       gutter.appendChild(lab);
     }
     gridArea.appendChild(gutter);
@@ -1072,12 +1194,12 @@
 
       const track = document.createElement('div');
       track.className = 'track';
-      track.style.height = (ROWS*ROW_H)+'px';
+      track.style.height = yFor(ROWS, ROW_H)+'px';
 
       for(let r=2;r<ROWS;r+=2){
         const hl = document.createElement('div');
-        hl.className = 'hour-line';
-        hl.style.top = (r*ROW_H)+'px';
+        hl.className = 'hour-line' + (r===CLOSE_ROW ? ' closing-line' : '');
+        hl.style.top = yFor(r, ROW_H)+'px';
         track.appendChild(hl);
       }
 
@@ -1100,7 +1222,7 @@
     // coverage column — colored by how many shifts are staffed at once
     const covCol = document.createElement('div');
     covCol.className = 'coverage-col-right';
-    covCol.style.height = (ROWS*ROW_H)+'px';
+    covCol.style.height = yFor(ROWS, ROW_H)+'px';
     covCol.style.marginTop = '26px';
 
     const COVERAGE_COLORS = ['#e0e0e0', '#e05a5a', '#ff9f40', '#4caf50', '#4a90d9', '#9b59b6'];
@@ -1119,8 +1241,8 @@
         if(count > 0){
           const seg = document.createElement('div');
           seg.className = 'cov-seg';
-          seg.style.top = (runStart*ROW_H)+'px';
-          seg.style.height = ((r-runStart)*ROW_H - 2)+'px';
+          seg.style.top = yFor(runStart, ROW_H)+'px';
+          seg.style.height = (yFor(r, ROW_H) - yFor(runStart, ROW_H) - 2)+'px';
           seg.style.background = COVERAGE_COLORS[Math.min(count, COVERAGE_COLORS.length-1)];
           seg.textContent = count;
           seg.title = count + ' shift' + (count===1?'':'s') + ' staffed ' + minutesLabel(START_MIN+runStart*STEP) + '–' + minutesLabel(START_MIN+r*STEP);
@@ -1133,6 +1255,15 @@
     gridArea.appendChild(shiftCols);
 
     dayEl.appendChild(gridArea);
+
+    let allWork = 0, allBreak = 0;
+    currentShifts().forEach(s => { const {work, brk} = shiftHours(s); allWork += work; allBreak += brk; });
+    const totalsLine = document.createElement('div');
+    totalsLine.className = 'combined-total';
+    totalsLine.innerHTML = `Total scheduled — all shifts combined: <b>${fmtHours(allWork)}</b> work` +
+      (allBreak > 0 ? ` · <b>${fmtHours(allBreak)}</b> break` : '');
+    dayEl.appendChild(totalsLine);
+
     container.appendChild(dayEl);
 
     scheduleSave();
@@ -1164,8 +1295,6 @@
   function buildChartBodyHtml(printRowH, colW, useColor){
     const version = state.versions[state.activeVersion];
     const headerH = 33; // matches the label column's margin-top below
-    const barFill = useColor ? '#f5e642' : '#000';
-    const barBorder = useColor ? '2px solid #000' : 'none';
 
     const shifts = currentShifts();
     const eventRows = new Set();
@@ -1173,22 +1302,26 @@
 
     let labelsHtml = '';
     for(let r=0;r<=ROWS;r++){
-      labelsHtml += `<div style="position:absolute;top:${r*printRowH}px;right:4px;font-size:13px;font-weight:700;transform:translateY(-50%);white-space:nowrap;">${minutesLabel(START_MIN+r*STEP)}</div>`;
+      labelsHtml += `<div style="position:absolute;top:${yFor(r,printRowH)}px;right:4px;font-size:13px;font-weight:700;transform:translateY(-50%);white-space:nowrap;">${rowLabel(r)}</div>`;
     }
 
     let colsHtml = '';
     shifts.forEach(shift => {
+      const barFill = useColor ? shift.color : '#000';
+      const headerStyle = useColor
+        ? `background:${shift.color};border:none;color:#2c2a52;`
+        : `background:#fff;border:3px solid #000;color:#000;`;
       let barsHtml = '';
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       sorted.forEach(b => {
-        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${b.start*printRowH}px;height:${(b.end-b.start)*printRowH-3}px;background:${barFill};border:${barBorder};box-sizing:border-box;border-radius:3px;"></div>`;
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(b.start,printRowH)}px;height:${yFor(b.end,printRowH)-yFor(b.start,printRowH)-3}px;background:${barFill};box-sizing:border-box;border-radius:3px;"></div>`;
       });
       getBreakSegments(shift).forEach(seg => {
-        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${seg.start*printRowH}px;height:${(seg.end-seg.start)*printRowH-3}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 4px,#fff 4px,#fff 9px);border:2px solid #000;box-sizing:border-box;"></div>`;
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(seg.start,printRowH)}px;height:${yFor(seg.end,printRowH)-yFor(seg.start,printRowH)-3}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 4px,#fff 4px,#fff 9px);border:2px solid #000;box-sizing:border-box;"></div>`;
       });
       colsHtml += `<div style="flex:0 0 ${colW}px;">` +
-        `<div style="text-align:center;font-weight:900;font-size:20px;border:3px solid #000;border-radius:6px;margin-bottom:5px;padding:3px 0;">${shift.label}</div>` +
-        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;">${barsHtml}</div>` +
+        `<div style="text-align:center;font-weight:900;font-size:20px;border-radius:6px;margin-bottom:5px;padding:3px 0;${headerStyle}">${shift.label}</div>` +
+        `<div style="position:relative;width:${colW}px;height:${yFor(ROWS,printRowH)}px;">${barsHtml}</div>` +
         `</div>`;
     });
 
@@ -1205,7 +1338,7 @@
       if(r===ROWS || coverage[r] !== coverage[runStart]){
         const count = coverage[runStart];
         if(count > 0){
-          covHtml += `<div style="position:absolute;left:0;right:0;top:${runStart*printRowH}px;height:${(r-runStart)*printRowH-2}px;background:${COVERAGE_COLORS[Math.min(count, COVERAGE_COLORS.length-1)]};border-radius:3px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;">${count}</div>`;
+          covHtml += `<div style="position:absolute;left:0;right:0;top:${yFor(runStart,printRowH)}px;height:${yFor(r,printRowH)-yFor(runStart,printRowH)-2}px;background:${COVERAGE_COLORS[Math.min(count, COVERAGE_COLORS.length-1)]};border-radius:3px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;">${count}</div>`;
         }
         runStart = r;
       }
@@ -1214,15 +1347,15 @@
     // horizontal lines across every column, only where a shift actually clocks in or out
     let eventLinesHtml = '';
     eventRows.forEach(r => {
-      eventLinesHtml += `<div style="position:absolute;left:0;right:0;top:${headerH + r*printRowH}px;border-top:2px solid #000;"></div>`;
+      eventLinesHtml += `<div style="position:absolute;left:58px;right:0;top:${headerH + yFor(r,printRowH)}px;border-top:2px solid #000;"></div>`;
     });
 
-    return `<div class="title">${version.name}</div>` +
+    return `<div class="title">Shift template — ${version.name}</div>` +
       (version.effectiveDate ? `<div class="sub">Starting ${version.effectiveDate}</div>` : '') +
       '<div style="position:relative;">' +
       '<div style="display:flex;">' +
-      `<div style="position:relative;width:58px;height:${ROWS*printRowH}px;margin-top:${headerH}px;flex:0 0 auto;">${labelsHtml}</div>` +
-      `<div style="position:relative;width:24px;height:${ROWS*printRowH}px;margin-top:${headerH}px;margin-right:6px;flex:0 0 auto;">${covHtml}</div>` +
+      `<div style="position:relative;width:58px;height:${yFor(ROWS,printRowH)}px;margin-top:${headerH}px;flex:0 0 auto;">${labelsHtml}</div>` +
+      `<div style="position:relative;width:24px;height:${yFor(ROWS,printRowH)}px;margin-top:${headerH}px;margin-right:6px;flex:0 0 auto;">${covHtml}</div>` +
       `<div style="display:flex;gap:8px;">${colsHtml}</div>` +
       '</div>' +
       eventLinesHtml +
@@ -1253,11 +1386,103 @@
   function renderPrintPreview(){
     const container = document.getElementById('printPreview');
     if(!container) return;
-    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // matches what actually prints
+    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // compact, just for on-screen viewing
   }
 
   document.getElementById('printBtn').addEventListener('click', () => {
+    const container = document.getElementById('printPreview');
+    // swap to regular-paper-sized dimensions just for the actual print
+    container.innerHTML = buildChartBodyHtml(30, 100, true) + buildShiftHoursHtml();
     window.print();
+    // restore the compact on-screen preview afterward
+    window.addEventListener('afterprint', renderPrintPreview, { once: true });
+    setTimeout(renderPrintPreview, 1000); // fallback in case afterprint doesn't fire
+  });
+
+  // ---- Star PassPRNT thermal printing ----
+  function buildStarPrintHtml(){
+    const chartBody = buildChartBodyHtml(20, 76, false); // monochrome — thermal printers can't do color
+    return '<html><head><meta charset="utf-8"><style>' +
+      'body{font-family:monospace;margin:0;padding:10px;color:#000;-webkit-print-color-adjust:exact;}' +
+      '.title{font-size:24px;font-weight:900;text-align:center;margin-bottom:3px;}' +
+      '.sub{font-size:15px;font-weight:700;text-align:center;margin-bottom:16px;}' +
+      '</style></head><body>' + chartBody + buildShiftHoursHtml() + '</body></html>';
+  }
+
+  function firePrintURI(htmlContent){
+    const backUrl = window.location.href;
+    const uri = 'starpassprnt://v1/print/nopreview' +
+      '?back=' + encodeURIComponent(backUrl) +
+      '&html=' + encodeURIComponent(htmlContent) +
+      '&size=3';
+    window.location.href = uri;
+  }
+
+  var PRINT_HOST_KEY = 'yaichiScheduleIsPrinterHost';
+  var lastHandledPrintId = null;
+
+  function isPrinterHost(){
+    try{ return localStorage.getItem(PRINT_HOST_KEY) === 'true'; }catch(e){ return false; }
+  }
+  function setPrinterHost(val){
+    try{ localStorage.setItem(PRINT_HOST_KEY, val ? 'true' : 'false'); }catch(e){}
+  }
+
+  function attachPrinterHostListener(){
+    if(!printQueueRef) return;
+    printQueueRef.once('value').then(snap => {
+      const existing = snap.val();
+      if(existing && existing.id) lastHandledPrintId = existing.id;
+      printQueueRef.on('value', snap2 => {
+        const data = snap2.val();
+        if(!data || !data.id || data.id === lastHandledPrintId) return;
+        lastHandledPrintId = data.id;
+        firePrintURI(data.html);
+      });
+    }).catch(() => {
+      printQueueRef.on('value', snap2 => {
+        const data = snap2.val();
+        if(!data || !data.id || data.id === lastHandledPrintId) return;
+        lastHandledPrintId = data.id;
+        firePrintURI(data.html);
+      });
+    });
+  }
+
+  const printerHostToggle = document.getElementById('printerHostToggle');
+  printerHostToggle.checked = isPrinterHost();
+  if(isPrinterHost()) attachPrinterHostListener();
+  printerHostToggle.addEventListener('change', () => {
+    setPrinterHost(printerHostToggle.checked);
+    if(printerHostToggle.checked) attachPrinterHostListener();
+  });
+
+  document.getElementById('starPrintBtn').addEventListener('click', () => {
+    const htmlContent = buildStarPrintHtml();
+    if(!printQueueRef){
+      firePrintURI(htmlContent); // no sync available — just try printing from this device directly
+      return;
+    }
+    const printId = Date.now() + '-' + Math.random().toString(36).slice(2);
+    printQueueRef.set({ html: htmlContent, id: printId, requestedAt: Date.now() }).then(() => {
+      if(!isPrinterHost()){
+        alert('Sent to the printer device.');
+      }
+    }).catch(() => {
+      firePrintURI(htmlContent);
+    });
+  });
+
+  document.getElementById('downloadImgBtn').addEventListener('click', () => {
+    const dayEl = document.querySelector('#dayContainer .day');
+    if(!dayEl || typeof html2canvas === 'undefined') return;
+    html2canvas(dayEl, { backgroundColor: '#fbf7ec', scale: 2 }).then(canvas => {
+      const link = document.createElement('a');
+      const version = state.versions[state.activeVersion];
+      link.download = 'shift-template-' + version.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
   });
 
   const overlay = document.getElementById('confirmOverlay');
@@ -1277,3 +1502,5 @@
   listenForRemoteChanges();
 })();
 </script>
+</body>
+</html>

@@ -282,9 +282,6 @@
     color:var(--accent);
     font-weight:700;
   }
-  .hour-line.closing-line{
-    border-top:1.5px solid var(--accent);
-  }
   .shift-cols{
     display:flex;
     gap:6px;
@@ -338,12 +335,6 @@
     );
     border-radius:6px;
     border:1px solid var(--line);
-  }
-  .hour-line{
-    position:absolute;
-    left:0;right:0;
-    border-top:1px solid #b89b66;
-    pointer-events:none;
   }
   .block{
     position:absolute;
@@ -1195,13 +1186,6 @@
       const track = document.createElement('div');
       track.className = 'track';
       track.style.height = yFor(ROWS, ROW_H)+'px';
-
-      for(let r=2;r<ROWS;r+=2){
-        const hl = document.createElement('div');
-        hl.className = 'hour-line' + (r===CLOSE_ROW ? ' closing-line' : '');
-        hl.style.top = yFor(r, ROW_H)+'px';
-        track.appendChild(hl);
-      }
 
       shift.blocks.forEach(b => track.appendChild(renderBlock(b, shift)));
       getBreakSegments(shift).forEach(seg => track.appendChild(renderBreakSeg(seg)));

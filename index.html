@@ -405,25 +405,6 @@
   }
   .clear-btn:hover{color:#b23b3b; border-color:#b23b3b;}
 
-  .host-row{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    margin-top:14px;
-    font-size:12.5px;
-    color:var(--text);
-  }
-  .host-row input{ width:auto; height:auto; }
-  .footnote{
-    max-width:480px;
-    margin:8px auto 0;
-    font-size:11.5px;
-    color:var(--muted);
-    line-height:1.5;
-    text-align:center;
-  }
-
   .preview-wrap{
     margin-top:18px;
   }
@@ -500,18 +481,18 @@
     cursor:pointer;
   }
 
-  .print-area{ display:none; }
 
   @media print{
     body *{ visibility:hidden; }
-    #dayContainer, #dayContainer *{ visibility:visible; }
-    #dayContainer{
+    #printPreview, #printPreview *{ visibility:visible; }
+    #printPreview{
       display:block;
       position:absolute;
       top:0; left:0;
       width:100%;
+      box-shadow:none;
+      max-width:none;
     }
-    .day{ border:none; box-shadow:none; }
   }
 </style>
 
@@ -525,20 +506,13 @@
   <div id="dayContainer"></div>
   <div id="dateRow" class="date-row"></div>
   <div class="preview-wrap">
-    <p class="preview-label">Print preview (Star printer)</p>
+    <p class="preview-label">Print preview</p>
     <div id="printPreview" class="print-preview"></div>
   </div>
   <div class="action-row">
     <button id="printBtn" class="print-btn">🖨 Print / PDF</button>
-    <button id="starPrintBtn" class="print-btn">🖨 Print to Star Printer</button>
     <button id="clearBtn" class="clear-btn">🗑 Clear schedule</button>
   </div>
-  <div class="host-row">
-    <input type="checkbox" id="printerHostToggle" />
-    <label for="printerHostToggle">This device is connected to the printer</label>
-  </div>
-  <p class="footnote">On the device physically connected to the Star printer (with the free <b>Star PassPRNT</b> app already set up), check the box above once. After that, tapping "Print to Star Printer" from any other device sends the job there automatically — no need to be at that device to print.</p>
-  <div id="printArea" class="print-area"></div>
   <div id="confirmOverlay" class="confirm-overlay" style="display:none;">
     <div class="confirm-box">
       <p>Clear every shift time in the current version? This can't be undone once you confirm.</p>
@@ -612,7 +586,6 @@
   };
   firebase.initializeApp(firebaseConfig);
   const dbRef = firebase.database().ref('shiftSchedule/state');
-  const printQueueRef = firebase.database().ref('shiftSchedule/printQueue');
 
   let suppressSave = true; // stays true until the first Firebase read completes
   let saveTimer = null;
@@ -1062,7 +1035,7 @@
 
     const head = document.createElement('div');
     head.className = 'day-head';
-    head.innerHTML = `<h2>Shift template</h2><span>${minutesLabel(START_MIN)} – ${minutesLabel(END_MIN)}</span>`;
+    head.innerHTML = `<h2>Shift template — ${state.versions[state.activeVersion].name}</h2><span>${minutesLabel(START_MIN)} – ${minutesLabel(END_MIN)}</span>`;
     dayEl.appendChild(head);
 
     const gridArea = document.createElement('div');
@@ -1117,8 +1090,8 @@
       stats.className = 'shift-stats';
       const {work, brk} = shiftHours(shift);
       stats.innerHTML = brk > 0
-        ? `<span class="lbl">Work</span> <b>${fmtHours(work)}</b> · <span class="lbl">Break</span> <b>${fmtHours(brk)}</b>`
-        : `<span class="lbl">Work</span> <b>${fmtHours(work)}</b>`;
+        ? `<div><span class="lbl">Work</span> <b>${fmtHours(work)}</b></div><div><span class="lbl">Break</span> <b>${fmtHours(brk)}</b></div>`
+        : `<div><span class="lbl">Work</span> <b>${fmtHours(work)}</b></div>`;
       col.appendChild(stats);
 
       shiftCols.appendChild(col);
@@ -1219,6 +1192,25 @@
         `</div>`;
     });
 
+    // coverage column — colored by how many shifts are staffed at once
+    const COVERAGE_COLORS = ['#e0e0e0', '#e05a5a', '#ff9f40', '#4caf50', '#4a90d9', '#9b59b6'];
+    const coverage = [];
+    for(let r=0;r<ROWS;r++){
+      const count = shifts.reduce((n, s) => n + (s.blocks.some(b => b.start<=r && b.end>r) ? 1 : 0), 0);
+      coverage.push(count);
+    }
+    let covHtml = '';
+    let runStart = 0;
+    for(let r=1;r<=ROWS;r++){
+      if(r===ROWS || coverage[r] !== coverage[runStart]){
+        const count = coverage[runStart];
+        if(count > 0){
+          covHtml += `<div style="position:absolute;left:0;right:0;top:${runStart*printRowH}px;height:${(r-runStart)*printRowH-2}px;background:${COVERAGE_COLORS[Math.min(count, COVERAGE_COLORS.length-1)]};border-radius:3px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;">${count}</div>`;
+        }
+        runStart = r;
+      }
+    }
+
     // horizontal lines across every column, only where a shift actually clocks in or out
     let eventLinesHtml = '';
     eventRows.forEach(r => {
@@ -1230,6 +1222,7 @@
       '<div style="position:relative;">' +
       '<div style="display:flex;">' +
       `<div style="position:relative;width:58px;height:${ROWS*printRowH}px;margin-top:${headerH}px;flex:0 0 auto;">${labelsHtml}</div>` +
+      `<div style="position:relative;width:24px;height:${ROWS*printRowH}px;margin-top:${headerH}px;margin-right:6px;flex:0 0 auto;">${covHtml}</div>` +
       `<div style="display:flex;gap:8px;">${colsHtml}</div>` +
       '</div>' +
       eventLinesHtml +
@@ -1257,79 +1250,11 @@
     return '<pre style="font-family:monospace;font-size:14px;font-weight:700;line-height:1.5;white-space:pre-wrap;margin-top:20px;">' + escaped + '</pre>';
   }
 
-  function buildPrintHtml(){
-    const chartBody = buildChartBodyHtml(20, 76, false); // monochrome — thermal printers can't do color
-    return '<html><head><meta charset="utf-8"><style>' +
-      'body{font-family:monospace;margin:0;padding:10px;color:#000;-webkit-print-color-adjust:exact;}' +
-      '.title{font-size:24px;font-weight:900;text-align:center;margin-bottom:3px;}' +
-      '.sub{font-size:15px;font-weight:700;text-align:center;margin-bottom:16px;}' +
-      '</style></head><body>' + chartBody + buildShiftHoursHtml() + '</body></html>';
-  }
-
   function renderPrintPreview(){
     const container = document.getElementById('printPreview');
     if(!container) return;
-    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // color — just for on-screen viewing
+    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // matches what actually prints
   }
-
-  function firePrintURI(htmlContent){
-    const backUrl = window.location.href;
-    const uri = 'starpassprnt://v1/print/nopreview' +
-      '?back=' + encodeURIComponent(backUrl) +
-      '&html=' + encodeURIComponent(htmlContent) +
-      '&size=3';
-    window.location.href = uri;
-  }
-
-  var PRINT_HOST_KEY = 'yaichiScheduleIsPrinterHost';
-  var lastHandledPrintId = null;
-
-  function isPrinterHost(){
-    try{ return localStorage.getItem(PRINT_HOST_KEY) === 'true'; }catch(e){ return false; }
-  }
-  function setPrinterHost(val){
-    try{ localStorage.setItem(PRINT_HOST_KEY, val ? 'true' : 'false'); }catch(e){}
-  }
-
-  function attachPrinterHostListener(){
-    printQueueRef.once('value').then(snap => {
-      const existing = snap.val();
-      if(existing && existing.id) lastHandledPrintId = existing.id;
-      printQueueRef.on('value', snap2 => {
-        const data = snap2.val();
-        if(!data || !data.id || data.id === lastHandledPrintId) return;
-        lastHandledPrintId = data.id;
-        firePrintURI(data.html);
-      });
-    }).catch(() => {
-      printQueueRef.on('value', snap2 => {
-        const data = snap2.val();
-        if(!data || !data.id || data.id === lastHandledPrintId) return;
-        lastHandledPrintId = data.id;
-        firePrintURI(data.html);
-      });
-    });
-  }
-
-  const printerHostToggle = document.getElementById('printerHostToggle');
-  printerHostToggle.checked = isPrinterHost();
-  if(isPrinterHost()) attachPrinterHostListener();
-  printerHostToggle.addEventListener('change', () => {
-    setPrinterHost(printerHostToggle.checked);
-    if(printerHostToggle.checked) attachPrinterHostListener();
-  });
-
-  document.getElementById('starPrintBtn').addEventListener('click', () => {
-    const htmlContent = buildPrintHtml();
-    const printId = Date.now() + '-' + Math.random().toString(36).slice(2);
-    printQueueRef.set({ html: htmlContent, id: printId, requestedAt: Date.now() }).then(() => {
-      if(!isPrinterHost()){
-        alert('Sent to the printer device.');
-      }
-    }).catch(() => {
-      firePrintURI(htmlContent);
-    });
-  });
 
   document.getElementById('printBtn').addEventListener('click', () => {
     window.print();

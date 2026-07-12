@@ -25,7 +25,7 @@
   }
   .wrap{padding:18px 14px 40px;}
   h1{
-    font-size:19px;
+    font-size:24px;
     margin:0 0 2px;
     letter-spacing:.2px;
     font-weight:700;
@@ -33,13 +33,13 @@
   }
   .sub{
     color:var(--accent);
-    font-size:12.5px;
+    font-size:15px;
     margin:0 0 16px;
     line-height:1.5;
   }
   .sync-status{
     color:#b23b3b;
-    font-size:11.5px;
+    font-size:13px;
     margin:0 0 12px;
     line-height:1.4;
   }
@@ -63,7 +63,7 @@
     background:var(--panel);
     border:1px solid var(--accent);
     color:var(--text);
-    font-size:13px;
+    font-size:15px;
     font-weight:600;
     padding:8px 30px 8px 12px;
     border-radius:8px;
@@ -86,7 +86,7 @@
     background:var(--panel);
     border:1px solid var(--accent);
     color:var(--text);
-    font-size:13px;
+    font-size:15px;
     font-weight:600;
     padding:8px 10px;
     border-radius:8px;
@@ -96,7 +96,7 @@
     background:transparent;
     border:1px dashed var(--line);
     color:var(--muted);
-    font-size:12.5px;
+    font-size:14px;
     font-weight:600;
     padding:7px 12px;
     border-radius:8px;
@@ -109,7 +109,7 @@
     background:var(--panel);
     border:1px solid var(--accent);
     color:var(--text);
-    font-size:12.5px;
+    font-size:14px;
     font-weight:600;
     padding:7px 12px;
     border-radius:8px;
@@ -170,18 +170,18 @@
     background:var(--bg);
     border:1px solid var(--line);
     color:var(--text);
-    font-size:13px;
+    font-size:15px;
     font-weight:700;
-    padding:5px 8px;
+    padding:6px 9px;
     border-radius:6px;
-    width:64px;
+    width:70px;
   }
   .entry-shift-remove{
     margin-left:auto;
     background:transparent;
     border:1px solid var(--line);
     color:var(--muted);
-    font-size:11px;
+    font-size:13px;
     padding:5px 10px;
     border-radius:6px;
     cursor:pointer;
@@ -198,27 +198,27 @@
     background:var(--bg);
     border:1px solid var(--line);
     color:var(--text);
-    font-size:13px;
-    padding:6px 8px;
+    font-size:15px;
+    padding:7px 9px;
     border-radius:6px;
-    max-width:130px;
+    max-width:150px;
   }
   .entry-row .dash{color:var(--muted); font-size:12px;}
   .entry-row-remove{
     background:transparent;
     border:1px solid var(--line);
     color:var(--muted);
-    width:24px;height:24px;
+    width:28px;height:28px;
     border-radius:50%;
     cursor:pointer;
-    font-size:12px;
+    font-size:14px;
   }
   .entry-row-remove:hover{color:#b23b3b;border-color:#b23b3b;}
   .entry-add-time{
     background:transparent;
     border:1px dashed var(--line);
     color:var(--muted);
-    font-size:11.5px;
+    font-size:13px;
     padding:5px 10px;
     border-radius:6px;
     cursor:pointer;
@@ -229,7 +229,7 @@
     background:transparent;
     border:1px dashed var(--line);
     color:var(--muted);
-    font-size:12.5px;
+    font-size:14px;
     font-weight:600;
     padding:8px 14px;
     border-radius:8px;
@@ -253,20 +253,20 @@
     margin-bottom:10px;
   }
   .day-head h2{
-    font-size:15px;
+    font-size:19px;
     margin:0;
     font-weight:700;
     color:var(--text);
   }
   .day-head span{
-    font-size:11px;
+    font-size:13px;
     color:var(--muted);
   }
   .grid-area{
     display:flex;
   }
   .gutter{
-    width:52px;
+    width:64px;
     flex:0 0 auto;
     position:relative;
   }
@@ -274,7 +274,7 @@
     position:absolute;
     right:6px;
     transform:translateY(-50%);
-    font-size:10px;
+    font-size:12px;
     color:var(--muted);
     white-space:nowrap;
   }
@@ -289,7 +289,7 @@
     overflow-x:auto;
   }
   .coverage-col-right{
-    width:26px;
+    width:32px;
     flex:0 0 auto;
     position:relative;
     margin-right:8px;
@@ -301,13 +301,13 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:10px;
+    font-size:12px;
     font-weight:700;
     color:#fff;
     text-shadow:0 1px 1px rgba(0,0,0,.35);
   }
   .shift-col{
-    flex:0 0 84px;
+    flex:0 0 108px;
     display:flex;
     flex-direction:column;
   }
@@ -315,10 +315,12 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    margin-bottom:4px;
+    height:26px;
+    box-sizing:border-box;
+    margin-bottom:0;
   }
   .shift-label{
-    font-size:12px;
+    font-size:15px;
     font-weight:700;
     padding:2px 6px;
     border-radius:6px;
@@ -329,9 +331,9 @@
     background:repeating-linear-gradient(
       to bottom,
       var(--panel2) 0,
-      var(--panel2) 14px,
-      var(--line) 14px,
-      var(--line) 15px
+      var(--panel2) 18px,
+      var(--line) 18px,
+      var(--line) 19px
     );
     border-radius:6px;
     border:1px solid var(--line);
@@ -340,7 +342,7 @@
     position:absolute;
     left:3px;right:3px;
     border-radius:6px;
-    font-size:10px;
+    font-size:12px;
     font-weight:700;
     color:#0f1720;
     display:flex;
@@ -355,7 +357,7 @@
     position:absolute;
     left:3px;right:3px;
     border-radius:6px;
-    font-size:9.5px;
+    font-size:11px;
     font-weight:700;
     color:var(--muted);
     display:flex;
@@ -373,7 +375,7 @@
   }
   .shift-stats{
     margin-top:6px;
-    font-size:10.5px;
+    font-size:12.5px;
     color:var(--muted);
     text-align:center;
     line-height:1.5;
@@ -386,7 +388,7 @@
     padding-top:12px;
     border-top:1px solid var(--line);
     text-align:center;
-    font-size:13px;
+    font-size:15px;
     color:var(--muted);
   }
   .combined-total b{color:var(--accent);}
@@ -397,7 +399,7 @@
     background:var(--panel);
     border:1px solid var(--accent);
     color:var(--accent);
-    font-size:13px;
+    font-size:15px;
     font-weight:700;
     padding:9px 18px;
     border-radius:8px;
@@ -411,7 +413,7 @@
     justify-content:center;
     gap:8px;
     margin-top:16px;
-    font-size:12.5px;
+    font-size:14px;
     color:var(--muted);
   }
   .date-row input{
@@ -436,7 +438,7 @@
     background:var(--panel);
     border:1px solid var(--line);
     color:var(--muted);
-    font-size:13px;
+    font-size:15px;
     font-weight:700;
     padding:9px 18px;
     border-radius:8px;
@@ -602,15 +604,15 @@
   const START_MIN = 11*60;     // 11:00 AM
   const STEP      = 30;        // minutes per row
   const CLOSE_MIN = 21*60;     // 9:00 PM — restaurant closing time
-  const END_MIN   = CLOSE_MIN + STEP; // grid stops right after closing — no rows beyond it
+  const END_MIN   = CLOSE_MIN; // "Closing" IS 9:00 PM — same hours as picking 9 PM directly
   const ROWS      = (END_MIN-START_MIN)/STEP;
-  const ROW_H     = 15;        // px
+  const ROW_H     = 19;        // px
   const CLOSE_ROW = ROWS;      // the very last row/boundary is "Closing"
 
   function yFor(row, rowH){ return row*rowH; }
 
   function rowLabel(row){
-    return row === CLOSE_ROW ? 'Closing' : minutesLabel(START_MIN+row*STEP);
+    return minutesLabel(START_MIN+row*STEP);
   }
 
   const PALETTE = ['#2dd4bf','#e94f8a','#ff7a59','#5b9dff','#c084fc','#ffd166','#8ee08e'];
@@ -1148,7 +1150,7 @@
 
     const head = document.createElement('div');
     head.className = 'day-head';
-    head.innerHTML = `<h2>Shift template — ${state.versions[state.activeVersion].name}</h2><span>${minutesLabel(START_MIN)} – Closing</span>`;
+    head.innerHTML = `<h2>Shift template — ${state.versions[state.activeVersion].name}</h2><span>${minutesLabel(START_MIN)} – ${minutesLabel(END_MIN)}</span>`;
     dayEl.appendChild(head);
 
     const gridArea = document.createElement('div');
@@ -1240,12 +1242,11 @@
 
     dayEl.appendChild(gridArea);
 
-    let allWork = 0, allBreak = 0;
-    currentShifts().forEach(s => { const {work, brk} = shiftHours(s); allWork += work; allBreak += brk; });
+    let allWork = 0;
+    currentShifts().forEach(s => { const {work} = shiftHours(s); allWork += work; });
     const totalsLine = document.createElement('div');
     totalsLine.className = 'combined-total';
-    totalsLine.innerHTML = `Total scheduled — all shifts combined: <b>${fmtHours(allWork)}</b> work` +
-      (allBreak > 0 ? ` · <b>${fmtHours(allBreak)}</b> break` : '');
+    totalsLine.innerHTML = `Total hours worked — all shifts combined: <b>${fmtHours(allWork)}</b>`;
     dayEl.appendChild(totalsLine);
 
     container.appendChild(dayEl);
@@ -1299,9 +1300,6 @@
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       sorted.forEach(b => {
         barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(b.start,printRowH)}px;height:${yFor(b.end,printRowH)-yFor(b.start,printRowH)-3}px;background:${barFill};box-sizing:border-box;border-radius:3px;"></div>`;
-      });
-      getBreakSegments(shift).forEach(seg => {
-        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(seg.start,printRowH)}px;height:${yFor(seg.end,printRowH)-yFor(seg.start,printRowH)-3}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 4px,#fff 4px,#fff 9px);border:2px solid #000;box-sizing:border-box;"></div>`;
       });
       colsHtml += `<div style="flex:0 0 ${colW}px;">` +
         `<div style="text-align:center;font-weight:900;font-size:20px;border-radius:6px;margin-bottom:5px;padding:3px 0;${headerStyle}">${shift.label}</div>` +

@@ -577,7 +577,7 @@
   <div class="action-row">
     <button id="printBtn" class="print-btn">🖨 Print / PDF</button>
     <button id="starPrintBtn" class="print-btn">🖨 Print to Star Printer</button>
-    <button id="downloadImgBtn" class="print-btn">📷 Download image</button>
+    <button id="downloadImgBtn" class="print-btn">📷 Save image</button>
     <button id="clearBtn" class="clear-btn">🗑 Clear schedule</button>
   </div>
   <div class="host-row">
@@ -1458,12 +1458,38 @@
   document.getElementById('downloadImgBtn').addEventListener('click', () => {
     const dayEl = document.querySelector('#dayContainer .day');
     if(!dayEl || typeof html2canvas === 'undefined') return;
+
+    // open the tab immediately (before the async render finishes) so
+    // Safari doesn't treat it as a blocked popup
+    const win = window.open('', '_blank');
+    if(win){
+      win.document.write('<!DOCTYPE html><html><head><title>Shift schedule</title>' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+        '<style>body{margin:0;background:#111;display:flex;flex-direction:column;' +
+        'align-items:center;justify-content:center;min-height:100vh;' +
+        'font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;' +
+        'text-align:center;padding:20px;box-sizing:border-box;}' +
+        'img{max-width:100%;height:auto;border-radius:8px;margin-bottom:16px;}' +
+        'p{font-size:15px;opacity:.8;max-width:320px;}</style></head>' +
+        '<body><p id="loading">Building your image…</p></body></html>');
+    }
+
     html2canvas(dayEl, { backgroundColor: '#fbf7ec', scale: 2 }).then(canvas => {
-      const link = document.createElement('a');
-      const version = state.versions[state.activeVersion];
-      link.download = 'shift-template-' + version.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        if(win && !win.closed){
+          win.document.body.innerHTML =
+            '<img src="' + url + '" alt="Shift schedule">' +
+            '<p>Press and hold the image above, then tap <b>Add to Photos</b> to save it.</p>';
+        } else {
+          // popup was blocked — fall back to a normal file download
+          const link = document.createElement('a');
+          const version = state.versions[state.activeVersion];
+          link.download = 'shift-template-' + version.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.png';
+          link.href = url;
+          link.click();
+        }
+      }, 'image/png');
     });
   });
 

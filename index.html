@@ -460,32 +460,14 @@
 
   @media print{
     body *{ visibility:hidden; }
-    .print-area, .print-area *{ visibility:visible; }
-    .print-area{
+    #dayContainer, #dayContainer *{ visibility:visible; }
+    #dayContainer{
       display:block;
       position:absolute;
       top:0; left:0;
       width:100%;
-      font-family:'Courier New', Courier, monospace;
-      font-size:12px;
-      color:#000;
-      padding:6px;
     }
-    .print-area h2{
-      font-size:14px;
-      text-align:center;
-      margin:0 0 4px;
-      letter-spacing:.05em;
-    }
-    .print-area .rule{
-      border-top:1px dashed #000;
-      margin:6px 0;
-    }
-    .print-area .shift-block{ margin-bottom:8px; }
-    .print-area .shift-block .name{ font-weight:700; }
-    .print-area .shift-block .line{ margin-left:8px; }
-    .print-area .totals{ margin-top:4px; font-weight:700; }
-    .print-area .starting{ text-align:center; margin-top:10px; font-weight:700; }
+    .day{ border:none; box-shadow:none; }
   }
 </style>
 
@@ -1122,81 +1104,44 @@
     row.appendChild(input);
   }
 
-  function buildPrintArea(){
-    const area = document.getElementById('printArea');
-    const version = state.versions[state.activeVersion];
-    let html = `<h2>${version.name}</h2><div class="rule"></div>`;
-
-    currentShifts().forEach(shift => {
-      const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
-      const {work, brk} = shiftHours(shift);
-
-      if(sorted.length === 0){
-        html += `<div class="shift-block"><div class="name">${shift.label} : (no times set)</div></div>`;
-      } else if(sorted.length === 1){
-        const b = sorted[0];
-        html += `<div class="shift-block"><div class="name">${shift.label} : ${minutesLabel(START_MIN+b.start*STEP)} ~ ${minutesLabel(START_MIN+b.end*STEP)}</div>`;
-        html += `<div class="line totals">Work ${fmtHours(work)}${brk>0 ? ' · Break '+fmtHours(brk) : ''}</div></div>`;
-      } else {
-        html += `<div class="shift-block"><div class="name">${shift.label} {</div>`;
-        sorted.forEach(b => {
-          html += `<div class="line">${minutesLabel(START_MIN+b.start*STEP)} ~ ${minutesLabel(START_MIN+b.end*STEP)}</div>`;
-        });
-        html += `<div class="name">}</div>`;
-        html += `<div class="line totals">Work ${fmtHours(work)}${brk>0 ? ' · Break '+fmtHours(brk) : ''}</div></div>`;
-      }
-    });
-
-    html += `<div class="rule"></div>`;
-    if(version.effectiveDate){
-      html += `<div class="starting">Starting ${version.effectiveDate}</div>`;
-    }
-    area.innerHTML = html;
-  }
-
-  function buildScheduleReportText(){
-    const version = state.versions[state.activeVersion];
-    const lines = [];
-    lines.push(version.name);
-    lines.push('='.repeat(version.name.length));
-    lines.push('');
-
-    currentShifts().forEach(shift => {
-      const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
-      const {work, brk} = shiftHours(shift);
-
-      if(sorted.length === 0){
-        lines.push(shift.label + ' : (no times set)');
-      } else if(sorted.length === 1){
-        const b = sorted[0];
-        lines.push(shift.label + ' : ' + minutesLabel(START_MIN+b.start*STEP) + ' ~ ' + minutesLabel(START_MIN+b.end*STEP));
-      } else {
-        lines.push(shift.label + ' {');
-        sorted.forEach(b => {
-          lines.push('  ' + minutesLabel(START_MIN+b.start*STEP) + ' ~ ' + minutesLabel(START_MIN+b.end*STEP));
-        });
-        lines.push('}');
-      }
-      lines.push('Work ' + fmtHours(work) + (brk>0 ? ' · Break ' + fmtHours(brk) : ''));
-      lines.push('');
-    });
-
-    if(version.effectiveDate){
-      lines.push('Starting ' + version.effectiveDate);
-    }
-
-    return lines.join('\n');
-  }
 
   function buildPrintHtml(){
-    const reportText = buildScheduleReportText();
-    const escaped = reportText
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    return '<html><head><meta charset="utf-8">' +
-      '<style>body{font-family:monospace;font-size:30px;font-weight:900;-webkit-text-stroke:0.6px currentColor;line-height:1.3;white-space:pre-wrap;margin:0;padding:6px;}</style>' +
-      '</head><body><pre>' + escaped + '</pre></body></html>';
+    const version = state.versions[state.activeVersion];
+    const printRowH = 12; // px per 30-min row, compact for receipt paper
+    const colW = 46;      // px per shift column
+
+    let labelsHtml = '';
+    for(let r=0;r<=ROWS;r++){
+      labelsHtml += `<div style="position:absolute;top:${r*printRowH}px;right:2px;font-size:8px;transform:translateY(-50%);white-space:nowrap;">${minutesLabel(START_MIN+r*STEP)}</div>`;
+    }
+
+    let colsHtml = '';
+    currentShifts().forEach(shift => {
+      let barsHtml = '';
+      const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
+      sorted.forEach(b => {
+        barsHtml += `<div style="position:absolute;left:2px;right:2px;top:${b.start*printRowH}px;height:${(b.end-b.start)*printRowH-2}px;background:#000;border-radius:2px;"></div>`;
+      });
+      getBreakSegments(shift).forEach(seg => {
+        barsHtml += `<div style="position:absolute;left:2px;right:2px;top:${seg.start*printRowH}px;height:${(seg.end-seg.start)*printRowH-2}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 2px,#fff 2px,#fff 5px);border:1px solid #000;box-sizing:border-box;"></div>`;
+      });
+      colsHtml += `<div style="flex:0 0 ${colW}px;">` +
+        `<div style="text-align:center;font-weight:900;font-size:13px;border:2px solid #000;border-radius:4px;margin-bottom:3px;padding:1px 0;">${shift.label}</div>` +
+        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;border:1px solid #000;">${barsHtml}</div>` +
+        `</div>`;
+    });
+
+    return '<html><head><meta charset="utf-8"><style>' +
+      'body{font-family:monospace;margin:0;padding:8px;color:#000;-webkit-print-color-adjust:exact;}' +
+      '.title{font-size:17px;font-weight:900;text-align:center;margin-bottom:2px;}' +
+      '.sub{font-size:11px;text-align:center;margin-bottom:12px;}' +
+      '</style></head><body>' +
+      `<div class="title">${version.name}</div>` +
+      (version.effectiveDate ? `<div class="sub">Starting ${version.effectiveDate}</div>` : '') +
+      '<div style="display:flex;">' +
+      `<div style="position:relative;width:34px;height:${ROWS*printRowH}px;margin-top:22px;flex:0 0 auto;">${labelsHtml}</div>` +
+      `<div style="display:flex;gap:5px;">${colsHtml}</div>` +
+      '</div></body></html>';
   }
 
   function firePrintURI(htmlContent){
@@ -1259,7 +1204,6 @@
   });
 
   document.getElementById('printBtn').addEventListener('click', () => {
-    buildPrintArea();
     window.print();
   });
 

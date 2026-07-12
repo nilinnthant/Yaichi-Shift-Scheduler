@@ -406,6 +406,32 @@
     text-align:center;
   }
 
+  .preview-wrap{
+    margin-top:18px;
+  }
+  .preview-label{
+    text-align:center;
+    font-size:12px;
+    font-weight:700;
+    color:var(--muted);
+    margin:0 0 8px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .print-preview{
+    background:#fff;
+    color:#000;
+    font-family:monospace;
+    max-width:340px;
+    margin:0 auto;
+    padding:14px 10px;
+    border-radius:4px;
+    box-shadow:0 2px 10px rgba(44,42,82,.18);
+    overflow-x:auto;
+  }
+  .print-preview .title{ font-size:17px; font-weight:900; text-align:center; margin-bottom:3px; }
+  .print-preview .sub{ font-size:11px; font-weight:700; text-align:center; margin-bottom:12px; }
+
   .confirm-overlay{
     position:fixed;
     inset:0;
@@ -480,6 +506,10 @@
   <div id="entryEditor" class="entry-panel"></div>
   <div id="dayContainer"></div>
   <div id="dateRow" class="date-row"></div>
+  <div class="preview-wrap">
+    <p class="preview-label">Print preview (Star printer)</p>
+    <div id="printPreview" class="print-preview"></div>
+  </div>
   <div class="action-row">
     <button id="printBtn" class="print-btn">🖨 Print / PDF</button>
     <button id="starPrintBtn" class="print-btn">🖨 Print to Star Printer</button>
@@ -1004,6 +1034,7 @@
     renderVersionTabs();
     renderEntryEditor();
     renderDateRow();
+    renderPrintPreview();
 
     const container = document.getElementById('dayContainer');
     container.innerHTML = '';
@@ -1105,14 +1136,12 @@
   }
 
 
-  function buildPrintHtml(){
+  function buildChartBodyHtml(printRowH, colW){
     const version = state.versions[state.activeVersion];
-    const printRowH = 12; // px per 30-min row, compact for receipt paper
-    const colW = 46;      // px per shift column
 
     let labelsHtml = '';
     for(let r=0;r<=ROWS;r++){
-      labelsHtml += `<div style="position:absolute;top:${r*printRowH}px;right:2px;font-size:8px;transform:translateY(-50%);white-space:nowrap;">${minutesLabel(START_MIN+r*STEP)}</div>`;
+      labelsHtml += `<div style="position:absolute;top:${r*printRowH}px;right:4px;font-size:13px;font-weight:700;transform:translateY(-50%);white-space:nowrap;">${minutesLabel(START_MIN+r*STEP)}</div>`;
     }
 
     let colsHtml = '';
@@ -1120,28 +1149,38 @@
       let barsHtml = '';
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       sorted.forEach(b => {
-        barsHtml += `<div style="position:absolute;left:2px;right:2px;top:${b.start*printRowH}px;height:${(b.end-b.start)*printRowH-2}px;background:#000;border-radius:2px;"></div>`;
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${b.start*printRowH}px;height:${(b.end-b.start)*printRowH-3}px;background:#000;border-radius:3px;"></div>`;
       });
       getBreakSegments(shift).forEach(seg => {
-        barsHtml += `<div style="position:absolute;left:2px;right:2px;top:${seg.start*printRowH}px;height:${(seg.end-seg.start)*printRowH-2}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 2px,#fff 2px,#fff 5px);border:1px solid #000;box-sizing:border-box;"></div>`;
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${seg.start*printRowH}px;height:${(seg.end-seg.start)*printRowH-3}px;background-image:repeating-linear-gradient(45deg,#000 0,#000 4px,#fff 4px,#fff 9px);border:2px solid #000;box-sizing:border-box;"></div>`;
       });
       colsHtml += `<div style="flex:0 0 ${colW}px;">` +
-        `<div style="text-align:center;font-weight:900;font-size:13px;border:2px solid #000;border-radius:4px;margin-bottom:3px;padding:1px 0;">${shift.label}</div>` +
-        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;border:1px solid #000;">${barsHtml}</div>` +
+        `<div style="text-align:center;font-weight:900;font-size:20px;border:3px solid #000;border-radius:6px;margin-bottom:5px;padding:3px 0;">${shift.label}</div>` +
+        `<div style="position:relative;width:${colW}px;height:${ROWS*printRowH}px;border:2px solid #000;">${barsHtml}</div>` +
         `</div>`;
     });
 
-    return '<html><head><meta charset="utf-8"><style>' +
-      'body{font-family:monospace;margin:0;padding:8px;color:#000;-webkit-print-color-adjust:exact;}' +
-      '.title{font-size:17px;font-weight:900;text-align:center;margin-bottom:2px;}' +
-      '.sub{font-size:11px;text-align:center;margin-bottom:12px;}' +
-      '</style></head><body>' +
-      `<div class="title">${version.name}</div>` +
+    return `<div class="title">${version.name}</div>` +
       (version.effectiveDate ? `<div class="sub">Starting ${version.effectiveDate}</div>` : '') +
       '<div style="display:flex;">' +
-      `<div style="position:relative;width:34px;height:${ROWS*printRowH}px;margin-top:22px;flex:0 0 auto;">${labelsHtml}</div>` +
-      `<div style="display:flex;gap:5px;">${colsHtml}</div>` +
-      '</div></body></html>';
+      `<div style="position:relative;width:58px;height:${ROWS*printRowH}px;margin-top:33px;flex:0 0 auto;">${labelsHtml}</div>` +
+      `<div style="display:flex;gap:8px;">${colsHtml}</div>` +
+      '</div>';
+  }
+
+  function buildPrintHtml(){
+    const chartBody = buildChartBodyHtml(20, 76);
+    return '<html><head><meta charset="utf-8"><style>' +
+      'body{font-family:monospace;margin:0;padding:10px;color:#000;-webkit-print-color-adjust:exact;}' +
+      '.title{font-size:24px;font-weight:900;text-align:center;margin-bottom:3px;}' +
+      '.sub{font-size:15px;font-weight:700;text-align:center;margin-bottom:16px;}' +
+      '</style></head><body>' + chartBody + '</body></html>';
+  }
+
+  function renderPrintPreview(){
+    const container = document.getElementById('printPreview');
+    if(!container) return;
+    container.innerHTML = buildChartBodyHtml(16, 56);
   }
 
   function firePrintURI(htmlContent){

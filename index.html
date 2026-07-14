@@ -369,13 +369,6 @@
     justify-content:center;
     text-align:center;
     pointer-events:none;
-    background-image:repeating-linear-gradient(
-      45deg,
-      var(--panel2) 0px,
-      var(--panel2) 6px,
-      var(--line) 6px,
-      var(--line) 12px
-    );
   }
   .shift-stats{
     margin-top:6px;
@@ -469,32 +462,6 @@
     text-align:center;
   }
 
-  .preview-wrap{
-    margin-top:18px;
-  }
-  .preview-label{
-    text-align:center;
-    font-size:12px;
-    font-weight:700;
-    color:var(--muted);
-    margin:0 0 8px;
-    letter-spacing:.03em;
-    text-transform:uppercase;
-  }
-  .print-preview{
-    background:#fff;
-    color:#000;
-    font-family:monospace;
-    max-width:340px;
-    margin:0 auto;
-    padding:14px 10px;
-    border-radius:4px;
-    box-shadow:0 2px 10px rgba(44,42,82,.18);
-    overflow-x:auto;
-  }
-  .print-preview .title{ font-size:17px; font-weight:900; text-align:center; margin-bottom:3px; }
-  .print-preview .sub{ font-size:11px; font-weight:700; text-align:center; margin-bottom:12px; }
-
   .confirm-overlay{
     position:fixed;
     inset:0;
@@ -578,10 +545,6 @@
     <div id="dayContainer"></div>
   </div>
   <div id="dateRow" class="date-row"></div>
-  <div class="preview-wrap">
-    <p class="preview-label">Star printer preview (black &amp; white)</p>
-    <div id="printPreview" class="print-preview"></div>
-  </div>
   <div class="action-row">
     <button id="printBtn" class="print-btn">🖨 Print / PDF</button>
     <button id="starPrintBtn" class="print-btn">🖨 Print to Star Printer</button>
@@ -814,6 +777,14 @@
     else if(h>12){ h=h-12; ampm='PM'; }
     else if(h===0){ h=12; ampm='AM'; }
     return h + (m? (':'+String(m).padStart(2,'0')) : '') + ' ' + ampm;
+  }
+
+  function hexToRgba(hex, alpha){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16);
+    const g = parseInt(h.substring(2,4),16);
+    const b = parseInt(h.substring(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
   }
 
   function fmtHours(rows){
@@ -1118,7 +1089,7 @@
     el.className = 'block';
     el.style.top = yFor(b.start, ROW_H)+'px';
     el.style.height = (yFor(b.end, ROW_H) - yFor(b.start, ROW_H) - 2)+'px';
-    el.style.background = shift.color;
+    el.style.background = hexToRgba(shift.color, 0.5);
     el.textContent = fmtHours(b.end-b.start);
     el.title = minutesLabel(START_MIN+b.start*STEP) + '–' + minutesLabel(START_MIN+b.end*STEP) + ' · ' + fmtHours(b.end-b.start);
     return el;
@@ -1148,7 +1119,7 @@
     renderVersionTabs();
     renderEntryEditor();
     renderDateRow();
-    renderPrintPreview();
+
 
     const container = document.getElementById('dayContainer');
     container.innerHTML = '';
@@ -1294,23 +1265,33 @@
     shifts.forEach(s => s.blocks.forEach(b => { eventRows.add(b.start); eventRows.add(b.end); }));
 
     let labelsHtml = '';
+    const labelFontSize = useColor ? '13px' : '16px';
+    const labelFontWeight = useColor ? '700' : '900';
     for(let r=0;r<=ROWS;r++){
-      labelsHtml += `<div style="position:absolute;top:${yFor(r,printRowH)}px;right:4px;font-size:13px;font-weight:700;transform:translateY(-50%);white-space:nowrap;">${rowLabel(r)}</div>`;
+      const label = rowLabel(r);
+      labelsHtml += `<div style="position:absolute;top:${yFor(r,printRowH)}px;right:4px;font-size:${labelFontSize};font-weight:${labelFontWeight};transform:translateY(-50%);white-space:nowrap;">${label}</div>`;
     }
 
     let colsHtml = '';
     shifts.forEach(shift => {
-      const barFill = useColor ? shift.color : '#000';
+      const barFill = useColor ? hexToRgba(shift.color, 0.5) : 'rgba(0,0,0,0.5)';
+      const textColor = '#000';
+      const barTextSize = useColor ? '13px' : '18px';
+      const breakTextSize = useColor ? '12px' : '15px';
+      const headerFontSize = useColor ? '20px' : '26px';
       const headerStyle = useColor
         ? `background:${shift.color};border:none;color:#2c2a52;`
         : `background:#fff;border:3px solid #000;color:#000;`;
       let barsHtml = '';
       const sorted = [...shift.blocks].sort((a,b) => a.start-b.start);
       sorted.forEach(b => {
-        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(b.start,printRowH)}px;height:${yFor(b.end,printRowH)-yFor(b.start,printRowH)-3}px;background:${barFill};box-sizing:border-box;border-radius:3px;"></div>`;
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(b.start,printRowH)}px;height:${yFor(b.end,printRowH)-yFor(b.start,printRowH)-3}px;background:${barFill};box-sizing:border-box;border-radius:3px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${barTextSize};color:${textColor};">${fmtHours(b.end-b.start)}</div>`;
+      });
+      getBreakSegments(shift).forEach(seg => {
+        barsHtml += `<div style="position:absolute;left:3px;right:3px;top:${yFor(seg.start,printRowH)}px;height:${yFor(seg.end,printRowH)-yFor(seg.start,printRowH)-3}px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${breakTextSize};color:#5a5040;">Break ${fmtHours(seg.end-seg.start)}</div>`;
       });
       colsHtml += `<div style="flex:0 0 ${colW}px;">` +
-        `<div style="text-align:center;font-weight:900;font-size:20px;border-radius:6px;margin-bottom:5px;padding:3px 0;${headerStyle}">${shift.label}</div>` +
+        `<div style="text-align:center;font-weight:900;font-size:${headerFontSize};border-radius:6px;margin-bottom:5px;padding:3px 0;${headerStyle}">${shift.label}</div>` +
         `<div style="position:relative;width:${colW}px;height:${yFor(ROWS,printRowH)}px;">${barsHtml}</div>` +
         `</div>`;
     });
@@ -1371,12 +1352,6 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
     return '<pre style="font-family:monospace;font-size:14px;font-weight:700;line-height:1.5;white-space:pre-wrap;margin-top:20px;">' + escaped + '</pre>';
-  }
-
-  function renderPrintPreview(){
-    const container = document.getElementById('printPreview');
-    if(!container) return;
-    container.innerHTML = buildChartBodyHtml(16, 56, true) + buildShiftHoursHtml(); // compact, just for on-screen viewing
   }
 
   document.getElementById('printBtn').addEventListener('click', () => {
